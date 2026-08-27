@@ -159,8 +159,10 @@
     ],
     "complexity": "M",
     "priority": 7,
-    "passes": false,
-    "verifier_verdict": null
+    "passes": true,
+    "verifier_verdict": "APPROVE",
+    "evidence": "vitest 139/139 PASS (storage 19, gameState 28), tsc 0, build 1131ms PASS, lint 0, STAGES [0.1,0.5,2,8,15] PASS, enabledStages skip 0.5->2 PASS, all-false autocorrect [true,false,false,false,false]+toast PASS, isHydrated true track non-null useEffect PASS, submitGuess ANGÈLE/coeur ligature PASS, filteredPool [] EmptyPoolCard sans throw + fallback Toutes PASS, playedIds per-pool filtré PASS, corrupt {broken fallback mémoire PASS, 5 echecs lost revealed true PASS, poolExhausted reset PASS, random useEffect PASS",
+    "completed_at": "2026-08-27T23:20:41Z"
   },
   {
     "id": "T07",

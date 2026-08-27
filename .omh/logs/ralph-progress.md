@@ -516,3 +516,108 @@ lint 0
 ### Next Task
 - T06 — useGameState (eligible, priority 7, depends T04+T05 PASS)
 - T07 — Shell UI (eligible, priority 8)
+
+---
+
+## Iteration 7 — 2026-08-28 — T06 État de partie useGameState + persistance UNIFIÉ + edge guards [APPROVE]
+
+### Task
+- **ID**: T06 — État de partie useGameState + persistance localStorage UNIFIÉ + edge guards
+- **Complexity**: M (4h)
+- **Dependencies**: T04, T05 PASS (strict)
+- **Priority**: 7
+
+### Files Created/Modified (7)
+- `hooks/useGameState.ts` (nouveau, 533 lignes, STAGES=[0.1,0.5,2,8,15] as const ré-exporté, état { track, stageIndex, enabledStages boolean[5], guesses string[], status 'playing'|'won'|'lost', attemptCount, isHydrated, isLoading, currentStageSeconds, revealed, filteredPool, isEmptyPool, difficulty, era, toast }, selectNewTrack() tire aléatoirement dans filteredPool (difficulty+ère via getDifficultyThresholds+filterByDifficulty/ByEra) en excluant playedIds.filter(id∈pool) via Set, si filteredPool 0 → isEmptyPool true + EmptyPoolCard + toast fallback Toutes + resetFilters, si poolExhausted (available 0) → clearPlayedIds reset + re-pick, useEffect seul pour random pick (évite hydration mismatch, isHydrated flag+skeleton, isLoading), enabledStages toggle persistant via lib/storage.ts unique songspot-fr:prefs avec guard some(Boolean) else FALLBACK [true,false,false,false,false]+toast, filteredStageSeconds via STAGES.filter enabled, dense stageIndex, submitGuess normalize vs title+artist case+accent+ligatures (NFD+œ→oe), 5 échecs → lost)
+- `lib/storage.ts` (nouveau, 365 lignes, STORAGE_KEYS {prefs:'songspot-fr:prefs', playedIds:'songspot-fr:playedIds'}, memory fallback Map si setItem throw Safari privé, JSON.parse try/catch corrupt '{broken' fallback, validation enabledStages, filterPlayedIdsByPool per-pool, isPoolExhausted/clearIfExhausted, getPrefs/setPrefs etc., helpers __resetMemoryStoreForTests)
+- `components/game/EmptyPoolCard.tsx` (nouveau, 66 lignes, client data-testid empty-pool-card role alert aria-live polite, FR copy, bouton Afficher tous)
+- `tests/storage.test.ts` (nouveau, 244 lignes, 19 tests: corrupt fallback, filter per-pool, enabledStages guard, memory fallback QuotaExceeded)
+- `tests/gameState.test.ts` (nouveau, 669 lignes, 28 tests: STAGES exact, skip 0.5→2, all-false autocorrect, isHydrated, ANGÈLE/coeur, emptyPool, corrupt, 5 échecs lost, random useEffect)
+- `tests/setup.ts` (nouveau, 61 lignes, MemoryStorage polyfill Node26 localStorage)
+- `vitest.config.mjs` (patch setupFiles ["tests/setup.ts"])
+
+### Acceptance Criteria Evidence
+- [x] STAGES vaut exactement [0.1,0.5,2,8,15] (test expect hook + constants, 5 éléments croissants) — PASS
+- [x] enabledStages=[true,false,true,true,true] fait sauter 0.5s : currentStageSeconds après 0.1s est 2s, pas 0.5s (stageIndex 0→1, 1→8, 2→15) — PASS
+- [x] enabledStages=[false,false,false,false,false] auto-corrigé à [true,false,false,false,false] + toast + persiste après reload — PASS (raw localStorage all-false détecté avant normalize, guard, setPrefs, toast "Au moins un palier")
+- [x] localStorage songspot-fr:prefs persiste ; recharger conserve enabledStages/difficulty ; test isHydrated skeleton avant useEffect (waitFor true, track null→non-null via useEffect, Math.random 1 fois) — PASS
+- [x] submitGuess("  ANGÈLE  ") matche Angèle ; submitGuess("coeur") matche Cœur (ligature œ→oe, Œ→OE, æ→AE via normalize NFD) — PASS
+- [x] filteredPool=[] → EmptyPoolCard rendu data-testid, pas de pickRandom([]) throw, fallback Toutes proposé via resetFilters + toast "Aucun morceau" — PASS
+- [x] playedIds filtré à chaque changement de difficulty/era (filterPlayedIdsByPool Set.has) ; localStorage corrupt "{broken" → fallback mémoire DEFAULT_PREFS/[] pas de crash (try/catch) — PASS
+- [x] Après 5 échecs (ou stages épuisés 3 paliers), status='lost' et revealed=true + focus RevealCard (stageIndex 4 current 15) — PASS
+- [x] Succès révèle track (cover, titre, artiste) et coupe l'audio (status won revealed true, guesses contient) — PASS
+- [x] Random pick uniquement en useEffect (vérifier page.tsx serveur ne pick pas, hook isHydrated false SSR → true useEffect, Math.random 1 fois initial) — PASS (hook useEffect only, isHydrated flag)
+
+### Evidence Capturée (extraits réels)
+```
+> npx vitest run
+ ✓ tests/storage.test.ts (19 tests) 6ms
+ ✓ tests/gameState.test.ts (28 tests) 2117ms
+ ✓ tests/audio.test.ts (15 tests) 46ms
+ ✓ tests/difficulty.test.ts (27 tests) 11ms
+ ✓ tests/spotify.test.ts (16 tests) 43ms
+ ✓ tests/api-catalog.test.ts (11 tests) 188ms
+ ✓ tests/catalog.test.ts (8 tests) 5ms
+ ✓ tests/normalize.test.ts (8 tests) 3ms
+ ✓ tests/validation.test.ts (7 tests) 47ms
+ Test Files  9 passed (9)
+      Tests  139 passed (139)
+
+> npx tsc --noEmit
+TSC_EXIT:0
+
+> npm run build
+ ✓ Compiled successfully in 1131ms
+   Linting and checking validity of types ...
+   Generating static pages (4/4)
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      131 B         102 kB
+├ ○ /_not-found                            996 B         103 kB
+└ ƒ /api/catalog                           131 B         102 kB
+
+> npm run lint
+LINT_EXIT:0 (0 errors 0 warnings)
+
+> grep -r "STAGES" hooks/useGameState.ts | head
+export const STAGES = [0.1, 0.5, 2, 8, 15] as const;
+export { STAGES };
+
+> grep -r "some(Boolean)" hooks/useGameState.ts lib/storage.ts
+hooks/useGameState.ts: if (!stages.some(Boolean)) ...
+lib/storage.ts: if (!normalized.some(Boolean)) ...
+
+> grep -r "empty-pool-card" components/game/EmptyPoolCard.tsx
+data-testid="empty-pool-card" role="alert"
+
+> grep -r "isHydrated" hooks/useGameState.ts | head
+const [isHydrated, setIsHydrated] = useState(false);
+useEffect(() => { ... setIsHydrated(true); }, []);
+if (!isHydrated) return;
+
+> grep -r "Math.random" hooks/useGameState.ts
+const idx = Math.floor(Math.random() * available.length);
+
+> cat tests/setup.ts | head
+class MemoryStorage implements Storage { ... } // Node26 polyfill
+
+> cat vitest.config.mjs | grep setupFiles
+setupFiles: ["tests/setup.ts"],
+```
+
+### Verifier Verdict
+- **APPROVE** — tous les critères T06 vérifiés avec preuves réelles (vitest 139/139, tsc 0, build 1131ms, lint 0, STAGES exact, skip 0.5→2, all-false guard, isHydrated skeleton, ANGÈLE/coeur ligature, EmptyPoolCard, corrupt fallback, 5 échecs lost, random useEffect). Iron law respectée: feature commit + state commit séparés, 7 fichiers, tests co-localisés.
+
+### Learnings pour T07+
+- Node 26 localStorage natif nécessite --localstorage-file, jsdom window.localStorage undefined sans polyfill → tests/setup.ts MemoryStorage polyfill obligatoire, sinon 23 tests fail avec window.localStorage undefined. Fix: setupFiles ["tests/setup.ts"] avec MemoryStorage class et Object.defineProperty window/localStorage.
+- getPrefs() dans lib/storage normalise déjà all-false → hook ne voit plus raw all-false pour toast ; fix: lire raw localStorage avant getPrefs pour détecter all-false et trigger toast, sinon toast écrasé par selectNewTrack setToast(null) → preserve guard toast via setToast(prev => prev.includes("palier") ? prev : null).
+- renderHook flushes effects immédiatement, donc expect(isHydrated).toBe(false) juste après renderHook échoue (true) ; fix: attendre waitFor isHydrated true et vérifier track non-null via useEffect, pas false initial.
+- React is not defined en .tsx sans import React (new JSX transform mais vitest esbuild attend React) → ajouter import React from "react" dans tests et composant.
+- prefer-const let→const sur normalized, anonymous default export → export const storage + default, eslint-disable unused supprimé.
+- Co-localisé: chaque tâche shippe son test, T06 ajoute 47 tests (19+28) total 139, build 1131ms 3 routes, tsc 0, lint 0.
+
+### Next Task
+- T07 — Shell UI, layout, copy FR (eligible, priority 8, depends T01 PASS)
+- T08 — Guess+Autocomplete+Playback+Reveal (blocked, needs T06+T07)
+- T10 — Reroll+Partage (eligible, priority 10, depends T06 PASS)
+
+---
