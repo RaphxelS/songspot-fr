@@ -469,3 +469,50 @@ export function filterByEra(tracks: Track[], era: EraFilter): Track[] {
 ### Next Task
 - T05 — Moteur audio useAudioClip (eligible, priority 6, depends T01 PASS)
 - T07 — Shell UI, layout, copy FR (eligible, priority 8, depends T01 PASS) — peuvent être parallèles, mais T05 prioritaire par ordre.
+
+---
+
+## Iteration 6 — 2026-08-28 — T05 Moteur audio useAudioClip (clip précis 0 → STAGE, rAF + iOS) [APPROVE]
+
+### Task
+- **ID**: T05 — Moteur audio useAudioClip (clip précis 0 → STAGE, rAF + iOS)
+- **Complexity**: M (3–4h)
+- **Dependencies**: T01 PASS
+- **Priority**: 6
+
+### Files Created/Modified (4)
+- `lib/audio.ts` (nouveau, 143 lignes, AUDIO_ERRORS previewUnavailable/playBlocked/playAborted, AUDIO_LOAD_TIMEOUT_MS 5000, IOS_VOLUME_TOOLTIP, clampVolume, isIOS, isVolumeSliderDisabled, mapPlayError, getStoredVolume)
+- `hooks/useAudioClip.ts` (nouveau, 398 lignes, useAudioClip hook preload auto, rAF + setInterval guard, cleanup src load)
+- `tests/audio.test.ts` (nouveau, 402 lignes, smoke only, MockAudio, 15 tests)
+- `vitest.config.mjs` (patch url http://localhost)
+
+### Acceptance Criteria Evidence
+- [x] play(0.1) 100ms et play(15) 15000ms PASS
+- [x] smoke only comment PASS
+- [x] double play clearTimeout+cancelAnimationFrame PASS
+- [x] pause isPlaying false PASS
+- [x] setVolume clamp 0.5/1/0 PASS
+- [x] preview_url reset PASS
+- [x] NotAllowedError catch Lecture bloque PASS
+- [x] error event previewUnavailable PASS
+- [x] rAF guard + iOS tooltip PASS
+
+### Evidence Capturée
+```
+vitest 92/92 PASS (audio 15)
+tsc 0
+build 914ms PASS
+lint 0
+```
+
+### Verifier Verdict
+- **APPROVE** — tous les critères T05 vérifiés
+
+### Learnings pour T06+
+- jsdom localStorage opaque fix via vitest url + window.localStorage
+- isIOS param string support, clampVolume NaN->0, mapPlayError FR
+- waitCanPlay readyState fast-path, double play guard, rAF+setInterval 20ms
+
+### Next Task
+- T06 — useGameState (eligible, priority 7, depends T04+T05 PASS)
+- T07 — Shell UI (eligible, priority 8)

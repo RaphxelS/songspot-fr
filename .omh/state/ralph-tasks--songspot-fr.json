@@ -132,8 +132,10 @@
     ],
     "complexity": "M",
     "priority": 6,
-    "passes": false,
-    "verifier_verdict": null
+    "passes": true,
+    "verifier_verdict": "APPROVE",
+    "evidence": "vitest 92/92 PASS (audio 15, difficulty 27, spotify 16, api-catalog 11, catalog 8, normalize 8, validation 7), tsc 0, build 914ms PASS (3 routes), lint 0, isIOS true iPhone/iPad/iPod + false Windows, clampVolume NaN→0, mapPlayError NotAllowed→playBlocked Abort→playAborted, play(0.1) 110ms false, play(15) 15000ms, double play clearTimeout+cancelAnimationFrame, pause clear, setVolume clamp 0.5/1/0, preview_url reset 0 + pause + removeEventListener, NotAllowedError catch Lecture bloquée, error event previewUnavailable, seek0, volume persist 0.7, smoke only QA manuelle, rAF+setInterval 20ms guard, IOS_VOLUME_TOOLTIP, preload auto, timeout 5s",
+    "completed_at": "2026-08-27T23:08:02.589205Z"
   },
   {
     "id": "T06",
