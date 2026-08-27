@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,15 +29,31 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50`}
       >
         <a
           href="#contenu-principal"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded focus:outline-none focus:ring-2 focus:ring-zinc-900"
         >
           Aller au contenu principal
         </a>
-        <div id="contenu-principal">{children}</div>
+        <ErrorBoundary>
+          <Header />
+          <main
+            id="contenu-principal"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 focus:outline-none"
+          >
+            {children}
+          </main>
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            className="sr-only"
+            id="annonces-stage"
+          />
+          <Footer />
+        </ErrorBoundary>
       </body>
     </html>
   );
