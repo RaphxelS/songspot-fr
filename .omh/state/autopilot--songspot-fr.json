@@ -1,0 +1,19 @@
+{
+  "phase": "execution",
+  "goal": "Create a clone of the website https://songspot.net/ but using french song, the top 50 France, Top Titles France from spotify",
+  "instance_id": "songspot-fr",
+  "spec_file": ".omh/specs/songspot-fr-spec.md",
+  "plan_file": ".omh/plans/ralplan-songspot-fr.md",
+  "ralph_iteration": 5,
+  "qa_cycle": 0,
+  "max_qa_cycles": 5,
+  "validation_round": 0,
+  "max_validation_rounds": 3,
+  "validation_verdicts": {},
+  "skip_qa": false,
+  "skip_validation": false,
+  "pause_after_phase": null,
+  "context_checkpoint": false,
+  "updated_at": "2026-08-27T22:48:44.468735Z",
+  "created_at": "2026-08-27T23:52:00Z"
+}
