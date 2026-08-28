@@ -1,8 +1,8 @@
 {
   "active": true,
   "phase": "execute",
-  "iteration": 9,
-  "current_task_id": "T08",
+  "iteration": 10,
+  "current_task_id": "T10",
   "instance_id": "songspot-fr",
   "plan_file": ".omh/plans/ralplan-songspot-fr.md",
   "spec_file": ".omh/specs/songspot-fr-spec.md",
@@ -58,7 +58,11 @@
     "components/game/StageProgress.tsx",
     "components/game/RevealCard.tsx",
     "components/game/GameContainer.tsx",
-    "tests/gameComponents.test.tsx"
+    "tests/gameComponents.test.tsx",
+    "lib/share.ts",
+    "components/game/RerollButton.tsx",
+    "components/game/ShareButton.tsx",
+    "tests/share.test.ts"
   ],
   "completed_task_learnings": [
     "T01 Bootstrap réussie: Next 15.5.3 + React 19.1.1 + Tailwind v4 (@import tailwindcss) + TS strict. Utiliser package.json manuel car create-next-app refuse majuscule dans dossier Songspot-fr — workaround par scaffold manuel.",
@@ -79,23 +83,22 @@
     "Tests T06: 28 tests gameState + 19 storage =47 pour T06, total 139/139 PASS 9 suites (storage 19, gameState 28, audio 15, difficulty 27, spotify 16, api-catalog 11, catalog 8, normalize 8, validation 7), tsc 0, build 1131ms (Compiled successfully, 3 routes, linting valid), lint 0 (après fix prefer-const let→const + anonymous default export → storage const + eslint-disable unused). Vérifs: STAGES exact [0.1,0.5,2,8,15] hook+constants, enabledStages [true,false,true,true,true] saute 0.5→2s (stageIndex 0→1 currentStageSeconds 2, all-false → [true,false,false,false,false]+toast+persist), isHydrated true après mount track non-null via useEffect (skeleton avant, random Math.random 1 fois initial, pas de pick SSR), localStorage prefs persist reload conserve enabledStages/difficulty, submitGuess ANGÈLE→angele match Angèle + coeur→coeur match Cœur (ligature œ/Œ/æ) + Œuvre→oeuvre, filteredPool [] → isEmptyPool true track null isLoading false toast fallback Toutes resetFilters, playedIds filtré per-pool (other-id-not-in-pool filtré, Classic pool 1), corrupt '{broken' fallback mémoire pas de crash, poolExhausted 2/2 → reset 1, selectNewTrack random dans available, 5 échecs → lost revealed true stageIndex 4 current 15, skip 1 stage → lost, getNextEnabledStageIndex helper exporté.",
     "T07 Shell UI finalisé: app/layout.tsx <html lang=\"fr\"> + metadata FR + next/font/google Geist + skip-link Aller au contenu principal + ErrorBoundary + container max-w-4xl single theme (pas simple/arcade V2), app/globals.css @import \"tailwindcss\" ownership unique (seul T07), components/layout/Header.tsx logo Songspot FR + nav FAQ + réglages difficulté/ère + hamburger aria-expanded + MobileMenu focus trap Escape close + tous textes FR (grep Guess/Play vide), Footer.tsx attribution Spotify, MobileMenu.tsx focus trap.",
     "Tailwind v4 ownership unique évite race globals.css (C5), V2 flags ENABLE_V2_STYLES=false présents mais non utilisés (single theme), build 988ms PASS, tsc 0, lint 0, vitest 139 PASS.",
-    "T08 Guess+Autocomplete+Playback+Reveal merge (priorite 9, deps T06+T07) - 6 composants sur 95 catalog: GuessInput 240L controle, filtre normalize(title+artist).includes(normalize(query)) >=2 chars max8, cover 32px, ArrowUp/Down wrap + Enter selection ou brut, role combobox aria-controls/expanded/activedescendant, listbox aria-selected, aria-live polite, focus clavier; GuessHistory pills aria-live; StageProgress 5 pills STAGES 0,1s/0,5s/2s/8s/15s French comma, actif pulse, guard last-enabled disabled, persistant via onToggle; AudioPlayer Play/Pause toggle 44px, indicateur 0,1s/15s, Depuis debut seek0, volume slider aria-label Volume iOS disabled via isIOS()+IOS_VOLUME_TOOLTIP, StageProgress integre, no autoplay only onClick; RevealCard succes/echec cover titre artiste album focus apres reveal tabIndex-1 role status aria-live, GameContainer integration useGameState+useAudioClip, skeleton, EmptyPoolCard, disabled won/lost; tests 33 couvrant angele->Angele coeur->Coeur oeuvre->Oeuvre jul multi, fleches+Enter, faux/bon guess, AudioPlayer toggle etc; vitest 172/172 PASS, tsc 0, build 6.5s 8.94kB, lint 0."
+    "T08 Guess+Autocomplete+Playback+Reveal merge (priorite 9, deps T06+T07) - 6 composants sur 95 catalog: GuessInput 240L controle, filtre normalize(title+artist).includes(normalize(query)) >=2 chars max8, cover 32px, ArrowUp/Down wrap + Enter selection ou brut, role combobox aria-controls/expanded/activedescendant, listbox aria-selected, aria-live polite, focus clavier; GuessHistory pills aria-live; StageProgress 5 pills STAGES 0,1s/0,5s/2s/8s/15s French comma, actif pulse, guard last-enabled disabled, persistant via onToggle; AudioPlayer Play/Pause toggle 44px, indicateur 0,1s/15s, Depuis debut seek0, volume slider aria-label Volume iOS disabled via isIOS()+IOS_VOLUME_TOOLTIP, StageProgress integre, no autoplay only onClick; RevealCard succes/echec cover titre artiste album focus apres reveal tabIndex-1 role status aria-live, GameContainer integration useGameState+useAudioClip, skeleton, EmptyPoolCard, disabled won/lost; tests 33 couvrant angele->Angele coeur->Coeur oeuvre->Oeuvre jul multi, fleches+Enter, faux/bon guess, AudioPlayer toggle etc; vitest 172/172 PASS, tsc 0, build 6.5s 8.94kB, lint 0.",
+    "T10 Reroll+Partage (URL sans stage) finalise : lib/share.ts buildShareUrl/parseShareUrl sans stage MVP C11 + allowlist id∈catalog + Zod ShareDifficultySchema + DIFFICULTY_LABELS + Toutes + copyShareUrl clipboard + TOAST_SHARE_COPIED/TOAST_CHALLENGE_NOT_FOUND/CHALLENGE_BANNER_PREFIX, lib/storage.ts deja UNIFIE getPlayedIds/push/clearIfExhausted/filterPlayedIdsByPool per-pool filter + tests/storage T10 5 tests reroll 10 picks deterministe + pool reset + filter per-pool era/difficulty + corrupt fallback, hooks/useGameState.ts ajoute challengeBanner/showToast/forceTrack/clearChallenge + selectNewTrack per-pool filter (Set) + pushPlayedId + poolExhausted reset + clearChallengeBanner on reroll + toast guard, components/game/GameContainer.tsx Suspense useSearchParams hasHandledChallenge ref + parseShareUrl allowlist + forceTrack banner Défi : devine ce morceau ! (difficulté X) + fallback Defi introuvable + toast + RerollButton/ShareButton integration + challenge banner aria-live data-testid, RerollButton Nouveau morceau onReroll, ShareButton Défier un ami copyShareUrl + toast Lien copie aria-label, tests/share.test.ts 11 tests round-trip sans stage + allowlist + invalid fallback + clipboard mock + challenge banner FR, build 1755ms PASS 25.6kB/128kB route / + /api/catalog dynamic, tsc 0, lint 0 errors (6 warnings exhaustive-deps + unused import documented), vitest 183/183 PASS."
   ],
   "created_at": "2026-08-28T00:00:00Z",
-  "updated_at": "2026-08-28T08:11:30Z",
+  "updated_at": "2026-08-28T08:25:00Z",
   "verifier": "evidence-gathered",
   "evidence": {
     "tsc": "PASS (exit 0)",
-    "lint": "PASS (exit 0)",
-    "vitest": "PASS (10 suites 172 tests)",
-    "build": "PASS (6.5s, 3 routes, 8.94kB /)",
-    "grep_fr": "PASS (FR copy, Lecture/Pause/Proposer/Depuis debut)",
-    "a11y": "PASS (role listbox, aria-selected, aria-live, combobox, focus)",
-    "hit_targets": "PASS (all interactive >=44px min-h-11)",
-    "ios": "PASS (isIOS detection, IOS_VOLUME_TOOLTIP, volume disabled on iOS)",
-    "no_autoplay": "PASS (no audio.play() on mount, only onClick)",
-    "stage_progress": "PASS (5 pills 0,1s/0,5s/2s/8s/15s, toggle persistant, guard >=1, actif pulse)",
-    "guess_accent": "PASS (angele->Angele, coeur->Coeur, oeuvre->Oeuvre, jul->Jul multi, max8, cover)",
-    "game_flow": "PASS (faux guess stage+1 + pill + aria-live, bon guess won+RevealCard focus)"
+    "lint": "PASS (0 errors, 6 warnings)",
+    "vitest": "PASS (11 suites 183 tests)",
+    "build": "PASS (1755ms, 4 routes, 25.6kB /)",
+    "share_roundtrip": "PASS (buildShareUrl->parseShareUrl retrouve 2 valeurs stage omis)",
+    "share_invalid": "PASS (?track=invalid -> toast Defi introuvable, morceau aleatoire, isValid false)",
+    "share_clipboard": "PASS (copyShareUrl writeText mock, Lien copie !, stage omis)",
+    "reroll_10": "PASS (10 picks sans repetition, 11e reset, filter per-pool)",
+    "challenge_banner": "PASS (Défi : devine ce morceau ! (difficulté Expert) banner, forceTrack)",
+    "a11y": "PASS (role status aria-live polite, challenge-banner data-testid)"
   }
 }
