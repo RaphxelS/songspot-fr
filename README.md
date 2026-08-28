@@ -9,11 +9,11 @@ Clone français de [Songspot](https://songspot.net/) — devine la chanson à pa
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run build      # build prod (5 routes: / , /faq, /api/catalog, /_not-found)
+npm run build      # build prod (12 routes: / , /faq, /api/*, /robots.txt, /sitemap.xml)
 npm start          # sert prod sur :3000
 npm run lint       # eslint flat config — 0 erreur 0 warning
 npx tsc --noEmit   # typecheck — 0 erreur
-npm test           # vitest 241 tests — 15 suites — 0 échec
+npm test           # vitest 300 tests — 23 suites — 0 échec
 npm run test:ci    # vitest --coverage — lib 80.87 % ≥60 %
 npm run validate:catalog   # HEAD preview_url 100 % (95/95)
 npm run spike:preview-rate # spike hit % preview_url live (cf. ci-dessous)
@@ -152,12 +152,35 @@ Styles `wide/tight` (max-w-6xl vs max-w-3xl) et `simple/arcade` (gradient/glow) 
 ## Build prod
 
 ```bash
-npm run build   # 5 routes: / (25.6 kB) , /faq (161 B), /api/catalog (dynamic), /_not-found
+npm run build   # 12 routes: / , /faq, /api/auth/spotify/*, /api/catalog, /api/me/liked, /api/preview, /robots.txt, /sitemap.xml
 npm start       # http://localhost:3000 → 200 + <html lang="fr">
 ```
 
-`next.config.ts` : `outputFileTracingRoot` silencie warning parent lockfile (`C:/Users/Raphael/package-lock.json`), `images.remotePatterns` `i.scdn.co`. `public/favicon.ico` (32 px violet ♪), `app/robots.ts` + `app/sitemap.ts` générent `/robots.txt` et `/sitemap.xml`. `next-env.d.ts` + `tsconfig.json` strict `true`.
+Le pipeline CI (`.github/workflows/ci.yml`) lance `lint`, `typecheck`, `build` et `test` à chaque push/PR. Le build et les tests tournent **sans credentials Spotify** : l'app bascule automatiquement sur `data/catalog.fr.json`, donc la CI ne nécessite aucun secret.
+
+`next.config.ts` : `outputFileTracingRoot` silencie un warning sur le lockfile parent, `images.remotePatterns` autorise `i.scdn.co` (+ Deezer/iTunes/placehold pour fallbacks). `public/favicon.ico` (32 px violet ♪), `app/robots.ts` + `app/sitemap.ts` génèrent `/robots.txt` et `/sitemap.xml`. `next-env.d.ts` + `tsconfig.json` strict `true`.
 
 ---
 
-*Songspot FR — itération 15 FINAL (T14). Catalogue 95 tracks 100 % HEAD, 241 tests Vitest 15 suites, coverage lib 80.87 %, build 0.9 s, Next 15.5.3.*
+## Déployer sur GitHub + Vercel (guide rapide)
+
+1. **Créer le dépôt** sur GitHub puis :
+   ```bash
+   git remote add origin git@github.com:<votre-utilisateur>/songspot-fr.git
+   git push -u origin master
+   ```
+   Le workflow CI se déclenche automatiquement à chaque push/PR (`lint` + `typecheck` + `build` + `test`).
+2. **Importer dans Vercel** : `New Project` → sélectionner le dépôt → Framework *Next.js* (détection auto). Aucune variable d'env requise pour jouer (fallback JSON). Pour le catalogue live + le mode « Titres aimés », renseigner `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI` dans *Project Settings → Environment Variables* (voir `.env.example`).
+3. **Mettre à jour le `SPOTIFY_REDIRECT_URI`** après déploiement pour pointer vers `https://<votre-domaine>/api/auth/spotify/callback`.
+
+## Contribuer
+
+PRs bienvenues. Lance `npm run lint`, `npx tsc --noEmit` et `npm test` avant de pousser — la CI les rejoue. Le catalogue de démo (`data/catalog.fr.json`) et les 300 tests garantissent un jeu démo-able et vérifiable sans credentials.
+
+## Licence
+
+[MIT](./LICENSE) — projet indépendant non affilié à Spotify ni à songspot.net. Voir le fichier LICENSE pour l'attribution et les conditions d'utilisation des extraits audio.
+
+---
+
+*Songspot FR — Next.js 15.5.3 · React 19 · Tailwind v4 · TypeScript strict. Catalogue 95 tracks (100 % `preview_url` valides), 300 tests Vitest (23 suites), lint 0, typecheck 0, build prod OK.*

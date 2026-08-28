@@ -38,4 +38,11 @@ next-env.d.ts
 .idea
 .vscode
 
-# ralph state (keep .omh but ignore local overrides if any)
+# omh autopilot internal state (not part of the published project)
+/.omh/
+
+# stray dev artifacts
+fail.png
+songspot.png
+preview-progress.html
+test-cycle.mjs
