@@ -621,3 +621,52 @@ setupFiles: ["tests/setup.ts"],
 - T10 — Reroll+Partage (eligible, priority 10, depends T06 PASS)
 
 ---
+
+## Iteration 8 — 2026-08-28 — T07 Shell UI, layout, copy FR [APPROVE]
+
+### Task
+- **ID**: T07 — Shell UI, layout, copy FR, design tokens (unique owner globals.css)
+- **Complexity**: M
+- **Dependencies**: T01 PASS
+- **Priority**: 8
+
+### Files Created/Modified (5)
+- `app/layout.tsx` (<html lang="fr">, metadata FR, next/font/google Geist, skip-link, ErrorBoundary, max-w-4xl)
+- `app/globals.css` (@import "tailwindcss", single theme)
+- `components/layout/Header.tsx` (logo Songspot FR, nav FAQ, réglages, hamburger aria-expanded, MobileMenu)
+- `components/layout/Footer.tsx` (attribution Spotify, lien FAQ)
+- `components/layout/MobileMenu.tsx` (focus trap, Escape close)
+
+### Acceptance Criteria Evidence
+- [x] grep -ri "Guess|Play|Skip|Share" app/ components/ → 0 (PASS, hors identifiers)
+- [x] app/layout.tsx lang="fr" + metadata.description FR + Geist next/font/google → PASS
+- [x] app/globals.css @import "tailwindcss" + pas de tailwind.config.ts → PASS
+- [x] Header hamburger aria-expanded, MobileMenu focus trap + Escape ferme, skip-link présent → PASS
+- [x] V2 flags ENABLE_V2_STYLES=false présents mais non utilisés (single theme) → PASS
+- [x] npm run lint ne signale pas lang manquant → PASS (0 errors)
+- [x] Ownership: seul T07 touche globals.css/layout.tsx → PASS
+
+### Evidence Capturée
+```
+> npx tsc --noEmit
+TSC_EXIT:0
+> npm run build
+ ✓ Compiled successfully in 988ms (4/4 pages, Route / 131B)
+> npm run lint
+LINT_EXIT:0
+> npx vitest run
+ Test Files 9 passed (9) Tests 139 passed (139)
+> grep -ri "Guess|Play|Skip|Share" app/ components/ → 0
+> grep -n lang="fr" app/layout.tsx → 30: <html lang="fr">
+> grep next/font/google app/layout.tsx → import { Geist } from "next/font/google"
+> cat app/globals.css | grep tailwindcss → @import "tailwindcss"
+> grep -n "Aller au contenu" app/layout.tsx → 38: Aller au contenu principal
+> grep -rn ENABLE_V2 .env.example → ENABLE_V2_STYLES=false
+```
+
+### Verifier Verdict
+- **APPROVE** — tous les critères T07 vérifiés avec preuves réelles (build, tsc, lint, vitest, grep). Iron law respectée. Fichiers déjà présents sur disque malgré delegation owner exit — recovery manuel (verify repo/state before re-dispatching).
+
+### Next Task
+- T08 — Guess+Autocomplete+Playback+Reveal (priority 9, needs T06+T07) — now unblocked
+- T10 — Reroll+Partage (priority 10, needs T06) — also eligible

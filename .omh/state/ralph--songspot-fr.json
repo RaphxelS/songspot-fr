@@ -1,8 +1,8 @@
 {
   "active": true,
   "phase": "execute",
-  "iteration": 7,
-  "current_task_id": "T06",
+  "iteration": 8,
+  "current_task_id": "T07",
   "instance_id": "songspot-fr",
   "plan_file": ".omh/plans/ralplan-songspot-fr.md",
   "spec_file": ".omh/specs/songspot-fr-spec.md",
@@ -48,7 +48,10 @@
     "components/game/EmptyPoolCard.tsx",
     "tests/storage.test.ts",
     "tests/gameState.test.ts",
-    "tests/setup.ts"
+    "tests/setup.ts",
+    "components/layout/Header.tsx",
+    "components/layout/Footer.tsx",
+    "components/layout/MobileMenu.tsx"
   ],
   "completed_task_learnings": [
     "T01 Bootstrap réussie: Next 15.5.3 + React 19.1.1 + Tailwind v4 (@import tailwindcss) + TS strict. Utiliser package.json manuel car create-next-app refuse majuscule dans dossier Songspot-fr — workaround par scaffold manuel.",
@@ -66,26 +69,23 @@
     "T06 État de partie useGameState UNIFIÉ (hooks/useGameState.ts 533L): STAGES=[0.1,0.5,2,8,15] exact as const ré-exporté, état { track, stageIndex, enabledStages boolean[5], guesses string[], status 'playing'|'won'|'lost', attemptCount, isHydrated, isLoading, currentStageSeconds, revealed, filteredPool, isEmptyPool, difficulty, era, toast }, selectNewTrack() tire aléatoirement dans filteredPool (difficulty+era via getDifficultyThresholds+filterByDifficulty/ByEra) en excluant playedIds.filter(id∈pool) via Set, si filteredPool 0 → isEmptyPool true + EmptyPoolCard + toast fallback Toutes + resetFilters, si poolExhausted (available 0) → clearPlayedIds reset + re-pick, useEffect seul pour random pick (évite hydration mismatch, isHydrated flag+skeleton, isLoading), enabledStages toggle persistant via lib/storage.ts unique songspot-fr:prefs avec guard some(Boolean) else FALLBACK [true,false,false,false,false]+toast (détecte raw localStorage all-false avant normalize), filteredStageSeconds via STAGES.filter enabled, dense stageIndex, submitGuess normalize vs title+artist case+accent+ligatures (NFD+œ→oe etc) → won+revealed, else advanceStage next enabled ou lost si dernier (5 échecs ou stages épuisés), skip idem, attemptCount, revealed won|lost.",
     "lib/storage.ts UNIFIÉ (365L): STORAGE_KEYS {prefs:'songspot-fr:prefs', playedIds:'songspot-fr:playedIds'}, memory fallback Map si setItem throw (Safari privé QuotaExceededError) + try/catch JSON.parse corrupt '{broken' fallback DEFAULT_PREFS/playedIds [], validation enabledStages via normalizeEnabledStages (Array.isArray length5 else DEFAULT [true]*5, some(Boolean) else FALLBACK [true,false,false,false,false]), filterPlayedIdsByPool(poolIds) avec Set.has + persist si différent (per-pool key), isPoolExhausted/clearIfExhausted, getPlayedIds/setPlayedIds/pushPlayedId/clearPlayedIds, getPrefs/setPrefs avec merge + clampVolume 0-1 + enabledStages guard, getEnabledStages/setEnabledStages etc., __resetMemoryStoreForTests/__clearAllStorageForTests helpers. Vitest polyfill tests/setup.ts MemoryStorage pour Node26 localStorage (jsdom window.localStorage undefined sans --localstorage-file, warning localStorage is not available).",
     "EmptyPoolCard.tsx (66L): client component data-testid empty-pool-card role alert aria-live polite, FR copy 'Aucun morceau disponible', message fallback Toutes difficulté/époque, bouton 'Afficher tous les morceaux' min-h-11 min-w-11 aria-label Réinitialiser, Tailwind amber palette, 66 lignes, utils.",
-    "Tests T06: 28 tests gameState + 19 storage =47 pour T06, total 139/139 PASS 9 suites (storage 19, gameState 28, audio 15, difficulty 27, spotify 16, api-catalog 11, catalog 8, normalize 8, validation 7), tsc 0, build 1131ms (Compiled successfully, 3 routes, linting valid), lint 0 (après fix prefer-const let→const + anonymous default export → storage const + eslint-disable unused). Vérifs: STAGES exact [0.1,0.5,2,8,15] hook+constants, enabledStages [true,false,true,true,true] saute 0.5→2s (stageIndex 0→1 currentStageSeconds 2, all-false → [true,false,false,false,false]+toast+persist), isHydrated true après mount track non-null via useEffect (skeleton avant, random Math.random 1 fois initial, pas de pick SSR), localStorage prefs persist reload conserve enabledStages/difficulty, submitGuess ANGÈLE→angele match Angèle + coeur→coeur match Cœur (ligature œ/Œ/æ) + Œuvre→oeuvre, filteredPool [] → isEmptyPool true track null isLoading false toast fallback Toutes resetFilters, playedIds filtré per-pool (other-id-not-in-pool filtré, Classic pool 1), corrupt '{broken' fallback mémoire pas de crash, poolExhausted 2/2 → reset 1, selectNewTrack random dans available, 5 échecs → lost revealed true stageIndex 4 current 15, skip 1 stage → lost, getNextEnabledStageIndex helper exporté."
+    "Tests T06: 28 tests gameState + 19 storage =47 pour T06, total 139/139 PASS 9 suites (storage 19, gameState 28, audio 15, difficulty 27, spotify 16, api-catalog 11, catalog 8, normalize 8, validation 7), tsc 0, build 1131ms (Compiled successfully, 3 routes, linting valid), lint 0 (après fix prefer-const let→const + anonymous default export → storage const + eslint-disable unused). Vérifs: STAGES exact [0.1,0.5,2,8,15] hook+constants, enabledStages [true,false,true,true,true] saute 0.5→2s (stageIndex 0→1 currentStageSeconds 2, all-false → [true,false,false,false,false]+toast+persist), isHydrated true après mount track non-null via useEffect (skeleton avant, random Math.random 1 fois initial, pas de pick SSR), localStorage prefs persist reload conserve enabledStages/difficulty, submitGuess ANGÈLE→angele match Angèle + coeur→coeur match Cœur (ligature œ/Œ/æ) + Œuvre→oeuvre, filteredPool [] → isEmptyPool true track null isLoading false toast fallback Toutes resetFilters, playedIds filtré per-pool (other-id-not-in-pool filtré, Classic pool 1), corrupt '{broken' fallback mémoire pas de crash, poolExhausted 2/2 → reset 1, selectNewTrack random dans available, 5 échecs → lost revealed true stageIndex 4 current 15, skip 1 stage → lost, getNextEnabledStageIndex helper exporté.",
+    "T07 Shell UI finalisé: app/layout.tsx <html lang=\"fr\"> + metadata FR + next/font/google Geist + skip-link Aller au contenu principal + ErrorBoundary + container max-w-4xl single theme (pas simple/arcade V2), app/globals.css @import \"tailwindcss\" ownership unique (seul T07), components/layout/Header.tsx logo Songspot FR + nav FAQ + réglages difficulté/ère + hamburger aria-expanded + MobileMenu focus trap Escape close + tous textes FR (grep Guess/Play vide), Footer.tsx attribution Spotify, MobileMenu.tsx focus trap.",
+    "Tailwind v4 ownership unique évite race globals.css (C5), V2 flags ENABLE_V2_STYLES=false présents mais non utilisés (single theme), build 988ms PASS, tsc 0, lint 0, vitest 139 PASS."
   ],
   "created_at": "2026-08-28T00:00:00Z",
-  "updated_at": "2026-08-27T23:20:58.911748Z",
+  "updated_at": "2026-08-28T07:55:39.919912Z",
   "verifier": "evidence-gathered",
   "evidence": {
-    "vitest": "PASS (9 suites, 139 tests, 0 fail — storage 19, gameState 28, audio 15, difficulty 27, spotify 16, api-catalog 11, catalog 8, normalize 8, validation 7)",
     "tsc": "PASS (exit 0)",
-    "build": "PASS (Compiled successfully in 1131ms, 0 errors, 3 routes, /api/catalog dynamic, linting valid)",
-    "lint": "PASS (exit 0, 0 errors 0 warnings)",
-    "STAGES": "PASS (expect(STAGES).toEqual([0.1,0.5,2,8,15]) hook + constants, 5 éléments croissants)",
-    "enabledStagesSkip": "PASS ([true,false,true,true,true] 0.1→2 pas 0.5, stageIndex 0→1, 1→8, 2→15, all-false → [true,false,false,false,false]+toast+persist)",
-    "isHydrated": "PASS (isHydrated true après mount, track non-null via useEffect, skeleton avant, random Math.random 1 fois initial, pas de pick SSR)",
-    "submitGuess": "PASS (ANGÈLE→Angèle true won, coeur→Cœur ligature œ→oe, Œuvre→oeuvre, mauvais→stage+1, 5 échecs lost revealed true, succès cover/titre/artiste)",
-    "emptyPool": "PASS (filteredPool [] → isEmptyPool true track null isLoading false toast, EmptyPoolCard data-testid empty-pool-card role alert, resetFilters → Toutes)",
-    "storageFallback": "PASS (corrupt '{broken' fallback DEFAULT_PREFS sans throw, playedIds [] , filter per-pool, memory fallback setItem throw QuotaExceeded)",
-    "poolExhausted": "PASS (2/2 poolExhausted → clearPlayedIds → 1, available random, filter per-pool Classic)",
-    "EmptyPoolCard": "PASS (render data-testid empty-pool-card, role alert, FR copy, bouton Afficher tous)",
-    "isHydratedSkeleton": "PASS (isHydrated flag+skeleton, isLoading true→false, useEffect only random)",
-    "useEffectRandom": "PASS (Math.random appelé 1 fois initial via useEffect, selectNewTrack 2e fois, pas de pick SSR, page.tsx serveur ne pick pas)",
-    "playlists": "PASS (filteredPool difficulty+era via getDifficultyThresholds+filterByDifficulty/Era, thresholds p20=75 p40=77 p60=80 p80=82)"
+    "lint": "PASS (exit 0)",
+    "vitest": "PASS (9 suites 139 tests)",
+    "build": "PASS (988ms, 4 pages)",
+    "grep_fr": "PASS (0 Guess/Play/Skip/Share)",
+    "lang_fr": "PASS",
+    "font_google": "PASS",
+    "globals_css": "PASS (@import tailwindcss, no tailwind.config.ts)",
+    "header_a11y": "PASS (aria-expanded, focus trap, Escape, skip-link)",
+    "v2_flags": "PASS (ENABLE_V2_STYLES false non utilisé)"
   }
 }
