@@ -289,8 +289,10 @@
     ],
     "complexity": "S",
     "priority": 12,
-    "passes": false,
-    "verifier_verdict": null
+    "passes": true,
+    "verifier_verdict": "APPROVE",
+    "evidence": "tsc: PASS 0, lint: PASS 0, vitest 225/225 PASS (14 suites, faq 12), build 1352ms PASS 5 routes /faq 161B 106kB, grep Guess empty exit1, grep Comment jouer ≥1, Difficulté ≥5, Spotify ≥8, Header FAQ 2 hits, metadata title FAQ — Songspot FR + description FR, lang=fr PASS, copy audit 0 anglais >Play< >Skip< >Share<, FAQ 9 sections FR, back link Retour au jeu, Footer Foire aux questions",
+    "completed_at": "2026-08-28T12:00:00Z"
   },
   {
     "id": "T13",
@@ -311,8 +313,10 @@
     ],
     "complexity": "M",
     "priority": 13,
-    "passes": false,
-    "verifier_verdict": null
+    "passes": true,
+    "verifier_verdict": "APPROVE",
+    "evidence": "vitest: PASS 15 suites 241 tests (quality-gate 16, responsive 18, faq 12, gameState 28, gameComponents 33, audio 15 smoke only, storage 24, share 14, difficulty 27, catalog 8, normalize 8, validation 7, spotify 16, api-catalog 11, rerollShare 4), tsc: PASS 0, build: PASS 1180ms 5 routes / 25.6kB First Load 128kB /faq 161B static /api/catalog dynamic, lint: PASS 0 (coverage/** ignores, jsdom url), coverage: PASS lib 80.87% >=60% Stmts 80.87 Branch 72.76 Funcs 73.33 Lines 80.87 via @vitest/coverage-v8@3.2.7 v8 npm run test:ci, package.json test:ci vitest run --coverage, vitest.config coverage thresholds statements:60 lines:60 branches:55 functions:55 provider v8 include lib/**, docs/qa-manual-matrix.md 12k matrice iOS Safari/Android Chrome/Desktop Chrome SC2 timing +/-50ms smoke only + checklist, filterByDifficulty vrai catalog 95 total skew p20=75 p40=77 p60=80 p80=82 combo EmptyPoolCard, storage corrupt {broken fallback DEFAULT/[] sans crash, normalize ligatures oe->oe Coeur->coeur, STAGES [0.1,0.5,2,8,15] exact hook+constants, enabledStages guard all-false->[true,false,false,false,false] some(Boolean), share invalid fallback TOAST_CHALLENGE_NOT_FOUND, emptyPool [] sans throw, smoke only tests/audio.test.ts comment, coverage gate leger, quality-gate 16 tests",
+    "completed_at": "2026-08-28T12:30:00Z"
   },
   {
     "id": "T14",
