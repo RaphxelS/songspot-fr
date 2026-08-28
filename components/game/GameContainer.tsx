@@ -64,6 +64,7 @@ export default function GameContainer({ catalog }: GameContainerProps) {
       game.selectNewTrack();
     }
     hasHandledChallenge.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.isHydrated, searchParams, catalog]);
 
   const handleGuess = React.useCallback(
