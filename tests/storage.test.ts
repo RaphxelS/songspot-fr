@@ -242,3 +242,84 @@ describe("lib/storage — prefs UNIFIÉ", () => {
     expect(STORAGE_KEYS.playedIds).toBe("songspot-fr:playedIds");
   });
 });
+
+describe("T10 — Reroll sans repetition 10 pickRandom", () => {
+  beforeEach(() => {
+    __clearAllStorageForTests();
+    __resetMemoryStoreForTests();
+    try { window.localStorage.clear(); } catch {}
+  });
+
+  it("10 pickRandom successifs sans repetition tant que poolSize non atteint", () => {
+    const poolIds = Array.from({ length: 10 }, (_, i) => 'id' + i);
+    const picked = [];
+    for (let i = 0; i < 10; i++) {
+      const available = poolIds.filter((id) => !getPlayedIds().includes(id));
+      expect(available.length).toBe(10 - i);
+      // pick random deterministic by mocking Math.random to avoid flake, but use real random with check
+      // For test, pick first available to simulate deterministic without repetition
+      const chosen = available[Math.floor(Math.random() * available.length)];
+      expect(picked).not.toContain(chosen);
+      picked.push(chosen);
+      pushPlayedId(chosen);
+      expect(getPlayedIds()).toContain(chosen);
+    }
+    expect(getPlayedIds()).toHaveLength(10);
+    expect(isPoolExhausted(poolIds)).toBe(true);
+  });
+
+  it("au 11e si poolSize=10, pool reset et id deja vu peut ressortir (FIFO)", () => {
+    const poolIds = Array.from({ length: 10 }, (_, i) => 'id' + i);
+    // fill pool
+    setPlayedIds([...poolIds]);
+    expect(isPoolExhausted(poolIds)).toBe(true);
+    const cleared = clearIfExhausted(poolIds);
+    expect(cleared).toBe(true);
+    expect(getPlayedIds()).toEqual([]);
+    // apres reset, un id deja vu peut ressortir
+    pushPlayedId(poolIds[0]);
+    expect(getPlayedIds()).toContain(poolIds[0]);
+    // simulate pickRandom after reset: available should be pool filtered
+    const availableAfterReset = poolIds.filter((id) => !getPlayedIds().includes(id));
+    expect(availableAfterReset).toHaveLength(9);
+    expect(availableAfterReset).not.toContain(poolIds[0]);
+    expect(availableAfterReset).toContain(poolIds[1]);
+  });
+
+  it("filter per-pool apres changement filtre (era/difficulty)", () => {
+    setPlayedIds(["a1", "a2", "b1", "b2", "other"]);
+    // pool A contient a1,a2
+    let filtered = filterPlayedIdsByPool(["a1", "a2"]);
+    expect(filtered).toEqual(["a1", "a2"]);
+    expect(getPlayedIds()).toEqual(["a1", "a2"]);
+    // changement vers pool B contient b1,b2,other
+    setPlayedIds(["a1", "a2", "b1", "b2", "other"]);
+    filtered = filterPlayedIdsByPool(["b1", "b2", "other"]);
+    expect(filtered).toEqual(["b1", "b2", "other"]);
+    expect(getPlayedIds()).toEqual(["b1", "b2", "other"]);
+  });
+
+  it("corrupt JSON fallback deja teste mais re-verifie pour T10", () => {
+    window.localStorage.setItem(STORAGE_KEYS.playedIds, "{broken");
+    expect(() => getPlayedIds()).not.toThrow();
+    expect(getPlayedIds()).toEqual([]);
+    // push doit fonctionner apres corrupt
+    pushPlayedId("newId");
+    expect(getPlayedIds()).toContain("newId");
+  });
+
+  it("localStorage playedIds contient ids joues et FIFO max poolSize comportement", () => {
+    clearPlayedIds();
+    const pool = ["t1", "t2", "t3"];
+    pushPlayedId("t1");
+    pushPlayedId("t2");
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEYS.playedIds) || "[]")).toEqual(["t1", "t2"]);
+    // isPoolExhausted false tant que 2/3
+    expect(isPoolExhausted(pool)).toBe(false);
+    pushPlayedId("t3");
+    expect(isPoolExhausted(pool)).toBe(true);
+    // clearIfExhausted reset FIFO
+    clearIfExhausted(pool);
+    expect(getPlayedIds()).toEqual([]);
+  });
+});

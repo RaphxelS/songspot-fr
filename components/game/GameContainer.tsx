@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { useGameState } from "@/hooks/useGameState";
 import { useAudioClip } from "@/hooks/useAudioClip";
 import GuessInput from "./GuessInput";
@@ -8,6 +9,9 @@ import GuessHistory from "./GuessHistory";
 import AudioPlayer from "./AudioPlayer";
 import RevealCard from "./RevealCard";
 import EmptyPoolCard from "./EmptyPoolCard";
+import RerollButton from "./RerollButton";
+import ShareButton from "./ShareButton";
+import { parseShareUrl } from "@/lib/share";
 import type { Track } from "@/lib/catalog";
 
 export type GameContainerProps = {
@@ -17,6 +21,8 @@ export type GameContainerProps = {
 export default function GameContainer({ catalog }: GameContainerProps) {
   const game = useGameState(catalog);
   const audio = useAudioClip(game.track?.preview_url ?? null);
+  const searchParams = useSearchParams();
+  const hasHandledChallenge = React.useRef(false);
 
   // Pause audio when won/lost revealed
   React.useEffect(() => {
@@ -25,13 +31,47 @@ export default function GameContainer({ catalog }: GameContainerProps) {
     }
   }, [game.revealed, audio]);
 
+  // T10: Au mount via useSearchParams (dans Suspense) si ?track= présent et valide (allowlist) → force ce track + banniere, sinon fallback random + toast "Defi introuvable"
+  React.useEffect(() => {
+    if (!game.isHydrated) return;
+    if (hasHandledChallenge.current) return;
+    if (!searchParams) return;
+    if (!catalog || catalog.length === 0) return;
+
+    const hasTrackParam = searchParams.has("track");
+    if (!hasTrackParam) {
+      hasHandledChallenge.current = true;
+      return;
+    }
+
+    const result = parseShareUrl(searchParams, catalog);
+
+    if (result.isValid && result.track) {
+      const ok = game.forceTrack(result.trackId!, result.difficulty);
+      if (ok) {
+        hasHandledChallenge.current = true;
+        return;
+      }
+    }
+
+    // Invalide -> fallback random + toast "Defi introuvable"
+    if (result.toast) {
+      game.showToast(result.toast);
+    } else {
+      game.showToast("Défi introuvable, morceau aléatoire");
+    }
+    if (!game.track) {
+      game.selectNewTrack();
+    }
+    hasHandledChallenge.current = true;
+  }, [game.isHydrated, searchParams, catalog]);
+
   const handleGuess = React.useCallback(
     (guess: string) => {
       const won = game.submitGuess(guess);
-      // if lost or won, audio will be paused via effect
       void won;
     },
-    [game],
+    [game]
   );
 
   const handleToggleStage = React.useCallback(
@@ -40,7 +80,20 @@ export default function GameContainer({ catalog }: GameContainerProps) {
       next[sparseIndex] = !next[sparseIndex];
       game.setEnabledStages(next);
     },
-    [game],
+    [game]
+  );
+
+  const handleReroll = React.useCallback(() => {
+    game.selectNewTrack();
+    game.showToast("Nouveau morceau !");
+  }, [game]);
+
+  const handleShareCopied = React.useCallback(
+    (url: string) => {
+      game.showToast("Lien copié !");
+      void url;
+    },
+    [game]
   );
 
   if (!game.isHydrated || game.isLoading) {
@@ -62,6 +115,11 @@ export default function GameContainer({ catalog }: GameContainerProps) {
             {game.toast}
           </p>
         )}
+        {game.challengeBanner && (
+          <p role="status" aria-live="polite" className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
+            {game.challengeBanner}
+          </p>
+        )}
       </div>
     );
   }
@@ -69,7 +127,7 @@ export default function GameContainer({ catalog }: GameContainerProps) {
   if (!game.track) {
     return (
       <div className="w-full max-w-2xl">
-        <p className="text-sm text-zinc-500">Chargement du morceau…</p>
+        <p className="text-sm text-zinc-500">Chargement du morceau...</p>
       </div>
     );
   }
@@ -78,6 +136,17 @@ export default function GameContainer({ catalog }: GameContainerProps) {
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-6">
+      {game.challengeBanner && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="challenge-banner"
+          className="rounded-md bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
+        >
+          {game.challengeBanner}
+        </div>
+      )}
+
       {game.toast && (
         <div role="status" aria-live="polite" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
           {game.toast}
@@ -98,7 +167,7 @@ export default function GameContainer({ catalog }: GameContainerProps) {
           <GuessInput catalog={catalog} onGuess={handleGuess} disabled={disabled} />
           <GuessHistory guesses={game.guesses} />
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => game.skip()}
@@ -107,19 +176,27 @@ export default function GameContainer({ catalog }: GameContainerProps) {
             >
               Passer
             </button>
+            <RerollButton onReroll={handleReroll} disabled={false} />
+            <ShareButton trackId={game.track.id} difficulty={game.difficulty} onCopied={handleShareCopied} disabled={disabled} />
             <span className="flex min-h-11 items-center text-xs text-zinc-500 dark:text-zinc-400">
-              Essai {game.attemptCount + 1} • Palier {formatStage(game.currentStageSeconds)}
+              Essai {game.attemptCount + 1} \u00b7 Palier {formatStage(game.currentStageSeconds)}
             </span>
           </div>
         </>
       ) : (
-        <RevealCard
-          track={game.track}
-          status={game.status as "won" | "lost"}
-          guesses={game.guesses}
-          attemptCount={game.attemptCount}
-          onNext={() => game.selectNewTrack()}
-        />
+        <>
+          <RevealCard
+            track={game.track}
+            status={game.status as "won" | "lost"}
+            guesses={game.guesses}
+            attemptCount={game.attemptCount}
+            onNext={handleReroll}
+          />
+          <div className="flex flex-wrap gap-3">
+            <RerollButton onReroll={handleReroll} />
+            <ShareButton trackId={game.track.id} difficulty={game.difficulty} onCopied={handleShareCopied} />
+          </div>
+        </>
       )}
     </div>
   );

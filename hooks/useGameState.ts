@@ -46,6 +46,10 @@ export type UseGameStateReturn = {
   difficulty: string;
   era: string;
   toast: string | null;
+  challengeBanner: string | null;
+  showToast: (message: string, durationMs?: number) => void;
+  forceTrack: (trackId: string, difficultyParam?: string | null) => boolean;
+  clearChallenge: () => void;
   submitGuess: (guess: string) => boolean;
   skip: () => void;
   selectNewTrack: () => void;
@@ -143,6 +147,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
   const [era, setEraState] = useState<string>("Toutes");
   const [toast, setToast] = useState<string | null>(null);
   const [isEmptyPool, setIsEmptyPool] = useState(false);
+  const [challengeBanner, setChallengeBanner] = useState<string | null>(null);
 
   // Derived: enabled seconds list
   const enabledStageSeconds = useMemo(
@@ -307,6 +312,8 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     }
 
     setIsEmptyPool(false);
+    // Clear challenge banner on new random pick (reroll)
+    setChallengeBanner(null);
     // Preserve guard toast ("Au moins un palier...") if present, otherwise clear
     setToast((prev) =>
       prev && prev.includes("Au moins un palier") ? prev : null,
@@ -441,6 +448,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     setDifficultyState("Toutes");
     setEraState("Toutes");
     setToast(null);
+    setChallengeBanner(null);
     try {
       setPrefs({ difficulty: "Toutes", era: "Toutes" });
     } catch {
@@ -453,6 +461,49 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     selectNewTrack();
   }, [selectNewTrack]);
 
+  // ── Helpers T10 : showToast + forceTrack + challengeBanner
+  const showToast = useCallback((message: string, durationMs: number = 3000) => {
+    setToast(message);
+    if (durationMs > 0) {
+      setTimeout(() => setToast(null), durationMs);
+    }
+  }, []);
+  const clearChallenge = useCallback(() => {
+    setChallengeBanner(null);
+  }, []);
+  const forceTrack = useCallback(
+    (trackId: string, difficultyParam?: string | null): boolean => {
+      if (!catalog || catalog.length === 0) return false;
+      const found = catalog.find((t) => t.id === trackId);
+      if (!found) return false;
+      const allowedDiffs = [...DIFFICULTY_LABELS, "Toutes"] as string[];
+      let diffToApply: string | null = null;
+      if (difficultyParam && allowedDiffs.includes(difficultyParam)) {
+        diffToApply = difficultyParam;
+        setDifficultyState(difficultyParam);
+        try {
+          setPrefs({ difficulty: difficultyParam });
+        } catch {}
+      }
+      try {
+        pushPlayedId(found.id);
+      } catch {}
+      setTrack(found);
+      setStageIndex(0);
+      setGuesses([]);
+      setStatus("playing");
+      setAttemptCount(0);
+      setIsLoading(false);
+      setIsEmptyPool(false);
+      const bannerDiff = diffToApply ?? difficultyParam ?? difficulty;
+      const banner = bannerDiff && allowedDiffs.includes(bannerDiff)
+        ? `Défi : devine ce morceau ! (difficulté ${bannerDiff})`
+        : "Défi : devine ce morceau !";
+      setChallengeBanner(banner);
+      return true;
+    },
+    [catalog, difficulty]
+  );
   // ── submitGuess : normalize vs track.title+artist case+accent+ligatures
   const submitGuess = useCallback(
     (guess: string): boolean => {
@@ -519,6 +570,10 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     difficulty,
     era,
     toast,
+    challengeBanner,
+    showToast,
+    forceTrack,
+    clearChallenge,
     submitGuess,
     skip,
     selectNewTrack,
