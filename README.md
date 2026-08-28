@@ -18,7 +18,7 @@ C'est la fonctionnalité phare : le jeu pioche ses chansons dans **ta** biblioth
 2. Note le **Client ID** et le **Client Secret**
 3. Dans l'onglet **Settings → Redirect URIs**, ajoute exactement :
    ```
-   http://localhost:3000/api/auth/spotify/callback      (en dev)
+   http://127.0.0.1:3000/api/auth/spotify/callback      (en dev)
    https://TON-SITE.com/api/auth/spotify/callback       (en prod)
    ```
 4. Le scope `user-library-read` est demandé automatiquement — tu n'as rien à cocher.
@@ -31,15 +31,15 @@ Copie `.env.example` en `.env.local` et remplis :
 SPOTIFY_CLIENT_ID=ton_client_id
 SPOTIFY_CLIENT_SECRET=ton_client_secret
 # Optionnel : doit pointer vers ton redirect URI ci-dessus
-SPOTIFY_REDIRECT_URI=http://localhost:3000/api/auth/spotify/callback
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/api/auth/spotify/callback
+NEXT_PUBLIC_BASE_URL=http://127.0.0.1:3000
 ```
 
 ### 3. Lancer et connecter
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run dev          # http://127.0.0.1:3000
 ```
 
 Ouvre le jeu, clique sur **« Connecter Spotify »**, autorise l'app, puis sélectionne
@@ -55,7 +55,7 @@ les mélange pour un tirage équitable, et lance la partie.
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run dev          # http://127.0.0.1:3000
 ```
 
 C'est tout. Sans identifiants Spotify, le jeu utilise le catalogue de secours intégré.
@@ -63,7 +63,7 @@ C'est tout. Sans identifiants Spotify, le jeu utilise le catalogue de secours in
 ### Commandes utiles
 
 ```bash
-npm run dev          # serveur de dev (http://localhost:3000)
+npm run dev          # serveur de dev (http://127.0.0.1:3000)
 npm run build        # build de production
 npm start            # sert le build de production
 npm run lint         # ESLint (0 erreur / 0 warning)
@@ -100,23 +100,6 @@ npm test             # 300 tests (23 suites), 0 échec
 
 Next.js 15 · React 19 · Tailwind v4 · TypeScript (strict) · Zod · Vitest
 · Web API Spotify (client credentials + OAuth « Titres aimés »)
-
----
-
-## 🌐 Déployer (GitHub + Vercel)
-
-1. **GitHub** : crée le dépôt, puis :
-   ```bash
-   git remote add origin git@github.com:TON-USER/songspot-fr.git
-   git push -u origin master
-   ```
-   La CI (`.github/workflows/ci.yml`) lance lint + typecheck + build + tests à chaque push.
-2. **Vercel** : *New Project* → importe le dépôt (framework Next.js détecté auto).
-   Aucune variable d'env requise pour jouer (catalogue de secours).
-3. Pour le mode **Titres aimés**, ajoute dans *Settings → Environment Variables* :
-   `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, et `SPOTIFY_REDIRECT_URI`
-   (qui doit valoir `https://ton-site.vercel.app/api/auth/spotify/callback`).
-4. Mets `NEXT_PUBLIC_BASE_URL` à `https://ton-site.vercel.app`.
 
 ---
 
