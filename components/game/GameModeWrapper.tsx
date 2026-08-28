@@ -46,7 +46,12 @@ function persistMode(mode: GameMode) {
 }
 
 export default function GameModeWrapper({ catalog }: Props) {
-  const [mode, setMode] = React.useState<GameMode>(() => getInitialMode());
+  // Initialise avec une valeur déterministe (identique serveur/client) pour
+  // éviter une erreur d'hydratation : getInitialMode() lit localStorage côté
+  // client mais renvoie "top" côté serveur (window undefined), produisant un
+  // HTML différent → React régénère l'arbre. L'effect ci-dessous corrige le
+  // mode réel après montage (sans mismatch).
+  const [mode, setMode] = React.useState<GameMode>("top");
   const [toast, setToast] = React.useState<string | null>(null);
   const auth = useSpotifyAuth();
   const liked = useLikedCatalog(mode === "liked" && auth.authenticated);

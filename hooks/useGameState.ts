@@ -11,6 +11,7 @@ import { normalize } from "@/lib/normalize";
 import { STAGES, STORAGE_KEYS } from "@/lib/constants";
 import {
   DIFFICULTY_LABELS,
+  getNextDifficulty,
   filterByDifficulty,
   filterByEra,
   getDifficultyThresholds,
@@ -57,6 +58,7 @@ export type UseGameStateReturn = {
   submitGuess: (guess: string) => boolean;
   skip: () => void;
   selectNewTrack: () => void;
+  selectNextTrack: () => string;
   setEnabledStages: (stages: boolean[]) => void;
   setDifficulty: (d: string) => void;
   setEra: (e: string) => void;
@@ -144,6 +146,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
   const [challengeBanner, setChallengeBanner] = useState<string | null>(null);
   const [toutesProgressIndex, setToutesProgressIndexState] = useState(0);
   const toutesProgressRef = useRef(0);
+  const skipNextEffectRef = useRef(false);
 
   // Derived: enabled seconds list
   const enabledStageSeconds = useMemo(
@@ -354,10 +357,120 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     setIsLoading(false);
   }, [catalog, difficulty, era]);
 
+  // ── selectNextTrack : passe au morceau suivant en incrémentant la difficulté (Facile→Moyen→…→Impossible→Facile)
+  // Utilisé par le bouton "Nouveau morceau" — incrémente puis tire dans le pool de la nouvelle difficulté.
+  // Retourne la difficulté réellement choisie pour le toast.
+  // Robustesse : si le palier suivant est vide pour l'ère courante, on continue cycliquement
+  // jusqu'au premier palier non vide (évite le blocage « Aucun morceau disponible »).
+  const selectNextTrack = useCallback((): string => {
+    if (!catalog || catalog.length === 0) {
+      setIsLoading(false);
+      setIsEmptyPool(false);
+      setTrack(null);
+      return difficulty;
+    }
+    // Calcule la prochaine difficulté dans le cycle
+    const nextDifficulty = getNextDifficulty(difficulty);
+    // Prépare le flag pour éviter le double pick de l'effect [isHydrated, selectNewTrack]
+    // (le changement de difficulté va recréer selectNewTrack et déclencher l'effect)
+    skipNextEffectRef.current = true;
+
+    // Recherche cyclique de la première difficulté non vide dans l'ère courante
+    let chosenDifficulty: string = nextDifficulty;
+    let pool: Track[] = [];
+    try {
+      const thresholds = getDifficultyThresholds(catalog);
+      const eraPool = filterByEra(catalog, era as never);
+      // Ordre cyclique en partant de nextDifficulty (Facile→Moyen→…→Impossible→Facile)
+      const startIdx = (DIFFICULTY_LABELS as readonly string[]).indexOf(nextDifficulty);
+      for (let i = 0; i < DIFFICULTY_LABELS.length; i++) {
+        const cand = DIFFICULTY_LABELS[(startIdx + i) % DIFFICULTY_LABELS.length];
+        const candPool = filterByDifficulty(eraPool, cand as DifficultyTier, thresholds);
+        if (candPool.length > 0) {
+          chosenDifficulty = cand;
+          pool = candPool;
+          break;
+        }
+      }
+      // Repli : aucun palier non vide → pool complet de l'ère sans filtre difficulté
+      if (pool.length === 0 && eraPool.length > 0) {
+        chosenDifficulty = difficulty;
+        pool = eraPool;
+      }
+    } catch {
+      pool = [];
+    }
+
+    // Persiste et met à jour l'état local avec la difficulté réellement choisie
+    setDifficultyState(chosenDifficulty);
+    try {
+      setPrefs({ difficulty: chosenDifficulty });
+    } catch {
+      // ignore
+    }
+
+    if (pool.length === 0) {
+      setIsEmptyPool(true);
+      setTrack(null);
+      setIsLoading(false);
+      setToast("Aucun morceau disponible pour ces filtres — essayez une autre difficulté ou époque");
+      return chosenDifficulty;
+    }
+
+    setIsEmptyPool(false);
+    // Clear challenge banner on new random pick (reroll)
+    setChallengeBanner(null);
+    // Preserve guard toast ("Au moins un palier...") if present, otherwise clear
+    setToast((prev) => (prev && prev.includes("Au moins un palier") ? prev : null));
+
+    const poolIds = pool.map((t) => t.id);
+    const filteredPlayed = filterPlayedIdsByPool(poolIds);
+
+    let available = pool.filter((t) => !filteredPlayed.includes(t.id));
+
+    // Si poolExhausted → playedIds=[] reset filtré
+    if (available.length === 0) {
+      try {
+        clearPlayedIds();
+      } catch {
+        // ignore
+      }
+      available = pool;
+    }
+
+    const idx = Math.floor(Math.random() * available.length);
+    const picked = available[idx];
+
+    if (!picked) {
+      setTrack(null);
+      setIsLoading(false);
+      return chosenDifficulty;
+    }
+
+    try {
+      pushPlayedId(picked.id);
+    } catch {
+      // ignore
+    }
+
+    setTrack(picked);
+    setStageIndex(0);
+    setGuesses([]);
+    setStatus("playing");
+    setAttemptCount(0);
+    setIsLoading(false);
+    return chosenDifficulty;
+  }, [catalog, difficulty, era]);
+
   // Random pick uniquement en useEffect (évite hydration mismatch)
   // isHydrated flag + skeleton, isLoading
+  // skipNextEffectRef évite le double pick quand selectNextTrack a déjà pioché avec la nouvelle difficulté
   useEffect(() => {
     if (!isHydrated) return;
+    if (skipNextEffectRef.current) {
+      skipNextEffectRef.current = false;
+      return;
+    }
     selectNewTrack();
   }, [isHydrated, selectNewTrack]);
 
@@ -560,6 +673,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     submitGuess,
     skip,
     selectNewTrack,
+    selectNextTrack,
     setEnabledStages,
     setDifficulty,
     setEra,

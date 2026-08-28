@@ -13,6 +13,16 @@ export const DIFFICULTY_LABELS = [
 
 export type DifficultyTier = (typeof DIFFICULTY_LABELS)[number];
 
+/**
+ * Retourne la difficulté suivante dans le cycle Facile→Moyen→Difficile→Expert→Impossible→Facile.
+ * Si current invalide ou "Toutes" (legacy), retourne "Facile".
+ */
+export function getNextDifficulty(current: string): DifficultyTier {
+  const idx = (DIFFICULTY_LABELS as readonly string[]).indexOf(current);
+  if (idx === -1) return "Facile";
+  return DIFFICULTY_LABELS[(idx + 1) % DIFFICULTY_LABELS.length];
+}
+
 export type DifficultyThresholds = {
   p20: number;
   p40: number;

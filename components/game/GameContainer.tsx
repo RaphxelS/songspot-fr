@@ -113,34 +113,58 @@ export default function GameContainer({ catalog }: GameContainerProps) {
   const [volume, setVolumeState] = React.useState(0.8);
   const [keybinds, setKeybindsState] = React.useState<Keybinds>({ ...DEFAULT_KEYBINDS });
 
-  // Sync difficulty/era - stable primitives; full game/difficultyCtx objects would loop
+  // Sync difficulty/era — single effect per key with prev tracking to avoid bidirectional ping-pong.
+  // Previous implementation had 4 separate effects (ctx→game + game→ctx) which both fired when
+  // values diverged (e.g. after selectNextTrack changes game.difficulty internally), causing
+  // infinite loop: ctx→game reverts, game→ctx pushes, back-and-forth → Maximum update depth exceeded.
+  // Now one effect per key detects which side changed and syncs only that direction.
+  const prevGameDiffRef = React.useRef(game.difficulty);
+  const prevCtxDiffRef = React.useRef(difficultyCtx.difficulty);
   React.useEffect(() => {
     if (!game.isHydrated) return;
-    if (difficultyCtx.difficulty !== game.difficulty) {
+    const gameChanged = prevGameDiffRef.current !== game.difficulty;
+    const ctxChanged = prevCtxDiffRef.current !== difficultyCtx.difficulty;
+    prevGameDiffRef.current = game.difficulty;
+    prevCtxDiffRef.current = difficultyCtx.difficulty;
+    if (gameChanged && !ctxChanged) {
+      if (game.difficulty !== difficultyCtx.difficulty) {
+        difficultyCtx.setDifficulty(game.difficulty);
+      }
+    } else if (!gameChanged && ctxChanged) {
+      if (difficultyCtx.difficulty !== game.difficulty) {
+        game.setDifficulty(difficultyCtx.difficulty);
+      }
+    } else if (!gameChanged && !ctxChanged && game.difficulty !== difficultyCtx.difficulty) {
+      // initial hydration divergence — ctx is UI source of truth
       game.setDifficulty(difficultyCtx.difficulty);
-    }
-  }, [difficultyCtx.difficulty, game.difficulty, game.isHydrated, game.setDifficulty]);
-
-  React.useEffect(() => {
-    if (!game.isHydrated) return;
-    if (difficultyCtx.era !== game.era) {
-      game.setEra(difficultyCtx.era);
-    }
-  }, [difficultyCtx.era, game.era, game.isHydrated, game.setEra]);
-
-  React.useEffect(() => {
-    if (!game.isHydrated) return;
-    if (game.difficulty !== difficultyCtx.difficulty) {
+    } else if (gameChanged && ctxChanged && game.difficulty !== difficultyCtx.difficulty) {
+      // both changed simultaneously (rare) — prioritize game (internal pick)
       difficultyCtx.setDifficulty(game.difficulty);
     }
-  }, [game.difficulty, game.isHydrated, difficultyCtx.difficulty, difficultyCtx.setDifficulty]);
+  }, [game.difficulty, difficultyCtx.difficulty, game.isHydrated, game.setDifficulty, difficultyCtx.setDifficulty]);
 
+  const prevGameEraRef = React.useRef(game.era);
+  const prevCtxEraRef = React.useRef(difficultyCtx.era);
   React.useEffect(() => {
     if (!game.isHydrated) return;
-    if (game.era !== difficultyCtx.era) {
+    const gameChanged = prevGameEraRef.current !== game.era;
+    const ctxChanged = prevCtxEraRef.current !== difficultyCtx.era;
+    prevGameEraRef.current = game.era;
+    prevCtxEraRef.current = difficultyCtx.era;
+    if (gameChanged && !ctxChanged) {
+      if (game.era !== difficultyCtx.era) {
+        difficultyCtx.setEra(game.era);
+      }
+    } else if (!gameChanged && ctxChanged) {
+      if (difficultyCtx.era !== game.era) {
+        game.setEra(difficultyCtx.era);
+      }
+    } else if (!gameChanged && !ctxChanged && game.era !== difficultyCtx.era) {
+      game.setEra(difficultyCtx.era);
+    } else if (gameChanged && ctxChanged && game.era !== difficultyCtx.era) {
       difficultyCtx.setEra(game.era);
     }
-  }, [game.era, game.isHydrated, difficultyCtx.era, difficultyCtx.setEra]);
+  }, [game.era, difficultyCtx.era, game.isHydrated, game.setEra, difficultyCtx.setEra]);
 
   // When song is revealed (won or lost), autoplay full preview loop until Nouveau morceau
   // Do NOT pause when !revealed — that would kill normal 0.1s/0.5s clips
@@ -225,16 +249,23 @@ export default function GameContainer({ catalog }: GameContainerProps) {
     // stop background loop before picking new track
     audio.pause();
     try { audio.seek0(); } catch {}
-    game.selectNewTrack();
-    game.showToast("Nouveau morceau !");
-  }, [game, audio.pause, audio.seek0]);
+    // Incrément cyclique de la difficulté à chaque Nouveau morceau (Facile→…→Impossible→Facile)
+    const selectNext = (game as unknown as { selectNextTrack?: () => string }).selectNextTrack;
+    if (typeof selectNext === "function") {
+      const next = (game as unknown as { selectNextTrack: () => string }).selectNextTrack();
+      game.showToast(`Nouveau morceau ! Difficulté : ${next}`);
+    } else {
+      game.selectNewTrack();
+      game.showToast("Nouveau morceau !");
+    }
+  }, [game.selectNextTrack, game.selectNewTrack, game.showToast, audio.pause, audio.seek0]);
 
   const handleShareCopied = React.useCallback(
     (url: string) => {
       game.showToast("Lien copié !");
       void url;
     },
-    [game]
+    [game.showToast]
   );
 
   const handleSkip = React.useCallback(() => {
