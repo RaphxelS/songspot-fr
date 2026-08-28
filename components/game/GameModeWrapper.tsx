@@ -215,7 +215,7 @@ export default function GameModeWrapper({ catalog }: Props) {
           <div className="flex justify-center gap-2">
             <button
               type="button"
-              onClick={() => void liked.fetchAll(100)}
+              onClick={() => void liked.fetchAll()}
               className="px-4 py-2 rounded-md bg-zinc-900 border border-zinc-800 text-sm text-zinc-200 hover:bg-zinc-800 min-h-11"
             >
               Réessayer
@@ -240,7 +240,7 @@ export default function GameModeWrapper({ catalog }: Props) {
           <div className="flex justify-center gap-2 pt-2">
             <button
               type="button"
-              onClick={() => void liked.fetchAll(100)}
+              onClick={() => void liked.fetchAll()}
               className="px-4 py-2 rounded-md bg-zinc-900 border border-zinc-800 text-sm text-zinc-200 hover:bg-zinc-800 min-h-11"
             >
               Actualiser

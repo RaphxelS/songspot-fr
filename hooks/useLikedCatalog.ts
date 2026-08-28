@@ -21,6 +21,16 @@ type LikedResponse = {
   playableCount: number;
 };
 
+// Fisher-Yates shuffle — uniform random, returns a NEW array.
+function shuffle<T>(input: T[]): T[] {
+  const arr = [...input];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export function useLikedCatalog(enabled: boolean): LikedCatalogState {
   const [tracks, setTracks] = React.useState<Track[] | null>(null);
   const [total, setTotal] = React.useState<number | null>(null);
@@ -55,8 +65,11 @@ export function useLikedCatalog(enabled: boolean): LikedCatalogState {
     }
   }, []);
 
+  // fetchAll: load EVERY liked track (Spotify returns newest-first), then shuffle
+  // so older likes get fair weight. No 100 cap. `maxTracks` optional (kept for
+  // backward-compat callers) — when omitted, the whole library is kept.
   const fetchAll = React.useCallback(
-    async (maxTracks = 100) => {
+    async (maxTracks?: number) => {
       setLoading(true);
       setError(null);
       try {
@@ -64,8 +77,10 @@ export function useLikedCatalog(enabled: boolean): LikedCatalogState {
         let offset = 0;
         const pageSize = 50;
         let totalVal: number | null = null;
+        // Safety net only — primary stop is `all.length >= totalVal`.
+        const hardCeiling = 10000;
 
-        while (all.length < maxTracks) {
+        while (true) {
           const qs = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
           const res = await fetch(`/api/me/liked?${qs.toString()}`, { cache: "no-store" });
           if (res.status === 401) {
@@ -82,14 +97,15 @@ export function useLikedCatalog(enabled: boolean): LikedCatalogState {
           all.push(...j.tracks);
           offset += pageSize;
           if (totalVal !== null && all.length >= totalVal) break;
-          if (totalVal !== null && offset >= totalVal) break;
-          if (offset > 1000) break;
-          // continue even if j.tracks.length < pageSize when filtering may have dropped tracks
-          // next iteration will get empty and break, ensuring we reach maxTracks=100
+          if (offset > hardCeiling) break;
         }
 
-        setTracks(all.slice(0, maxTracks));
-        setTotal(totalVal);
+        // Shuffle so the newest-first Spotify order doesn't starve older likes.
+        const shuffled = shuffle(all);
+        setTracks(
+          typeof maxTracks === "number" && maxTracks > 0 ? shuffled.slice(0, maxTracks) : shuffled,
+        );
+        setTotal(totalVal ?? all.length);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Erreur inconnue";
         setError(msg);
@@ -98,7 +114,7 @@ export function useLikedCatalog(enabled: boolean): LikedCatalogState {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   const clear = React.useCallback(() => {
@@ -110,7 +126,7 @@ export function useLikedCatalog(enabled: boolean): LikedCatalogState {
   // Auto-fetch when enabled becomes true and we have no data yet
   React.useEffect(() => {
     if (enabled && tracks === null && !loading && !error) {
-      void fetchAll(100);
+      void fetchAll();
     }
     if (!enabled) {
       // keep cache; don't clear automatically to allow quick switch back

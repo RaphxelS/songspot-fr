@@ -524,7 +524,6 @@ export default function GameContainer({ catalog }: GameContainerProps) {
                 onNext={handleReroll}
               />
               <div className="flex justify-center gap-3">
-                <RerollButton onReroll={handleReroll} />
                 <ShareButton trackId={game.track.id} difficulty={game.difficulty} onCopied={handleShareCopied} />
               </div>
             </div>
