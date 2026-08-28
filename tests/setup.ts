@@ -1,3 +1,5 @@
+import "@testing-library/jest-dom/vitest";
+
 /**
  * Setup file to polyfill localStorage for jsdom on Node 26
  * Node 26 has native localStorage requiring --localstorage-file, which conflicts with jsdom.
