@@ -4,7 +4,6 @@ import { fetchAllCatalog } from "@/lib/spotify";
 import { CatalogSchema } from "@/lib/validation";
 
 export const revalidate = 3600;
-export const dynamic = "force-dynamic";
 
 const CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 

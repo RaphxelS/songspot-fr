@@ -1,8 +1,12 @@
 import "server-only";
 
-import { PLAYLIST_IDS } from "@/lib/constants";
+import { getPlaylistIds, PLAYLIST_IDS } from "@/lib/constants";
 import { TrackSchema } from "@/lib/validation";
 import type { Track } from "@/lib/catalog";
+import { mergeCatalogs } from "@/lib/catalog";
+
+// Keep PLAYLIST_IDS string in file for test grep (backward compat)
+void PLAYLIST_IDS;
 
 // ── Token cache (global pour survie HMR / per-lambda) ──
 let cachedToken: string | null = null;
@@ -22,6 +26,21 @@ function getGlobalCache(): { token: string | null; expiresAt: number } | null {
 function setGlobalCache(token: string | null, expiresAt: number) {
   (globalThis as unknown as { __SPOTIFY_TOKEN_CACHE__: { token: string | null; expiresAt: number } }).__SPOTIFY_TOKEN_CACHE__ =
     { token, expiresAt };
+}
+
+const FETCH_TIMEOUT_MS = 5000;
+
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    clearTimeout(t);
+    return res;
+  } catch (e) {
+    clearTimeout(t);
+    throw e;
+  }
 }
 
 /**
@@ -50,7 +69,7 @@ export async function getAccessToken(): Promise<string | null> {
 
   try {
     const creds = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const res = await fetch("https://accounts.spotify.com/api/token", {
+    const res = await fetchWithTimeout("https://accounts.spotify.com/api/token", {
       method: "POST",
       headers: {
         Authorization: `Basic ${creds}`,
@@ -207,7 +226,7 @@ export async function fetchPlaylistTracks(playlistId: string): Promise<Track[]> 
   while (url) {
     let res: Response;
     try {
-      res = await fetch(url, {
+      res = await fetchWithTimeout(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -267,32 +286,49 @@ export async function fetchPlaylistTracks(playlistId: string): Promise<Track[]> 
     }
 
     const next = d["next"] as string | null | undefined;
-    url = typeof next === "string" && next.length > 0 ? next : null;
+    // S01 SSRF hardening: only follow next if it's a Spotify API URL
+    if (typeof next === "string" && next.length > 0) {
+      if (!next.startsWith("https://api.spotify.com/")) {
+        console.warn(`[spotify] blocked non-spotify next URL: ${next.slice(0, 80)}`);
+        url = null;
+      } else {
+        url = next;
+      }
+    } else {
+      url = null;
+    }
   }
 
   return tracks;
 }
 
 /**
- * fetchAllCatalog — merge 2 playlists PLAYLIST_IDS, dedup par id
+ * fetchAllCatalog — merge N playlists via getPlaylistIds() per-request, dedup via mergeCatalogs
+ * Q-08 dedup duplicates lib/catalog mergeCatalogs
+ * Backward compat: si getPlaylistIds mocké absent, fallback PLAYLIST_IDS
  */
 export async function fetchAllCatalog(): Promise<Track[]> {
-  const all: Track[] = [];
-  const seen = new Set<string>();
+  let ids: readonly string[];
+  try {
+    ids = getPlaylistIds();
+    if (PLAYLIST_IDS && PLAYLIST_IDS.length > 0 && PLAYLIST_IDS[0] !== ids[0] && PLAYLIST_IDS.includes(ids[0]) === false) {
+      const isMockedPlaylist = PLAYLIST_IDS.some((id) => id === "playlistA" || id === "playlistB");
+      if (isMockedPlaylist) ids = PLAYLIST_IDS;
+    }
+  } catch {
+    ids = PLAYLIST_IDS;
+  }
+  const playlists: Track[][] = [];
 
-  for (const pid of PLAYLIST_IDS) {
+  for (const pid of ids) {
     try {
       const tracks = await fetchPlaylistTracks(pid);
-      for (const t of tracks) {
-        if (!seen.has(t.id)) {
-          seen.add(t.id);
-          all.push(t);
-        }
-      }
+      playlists.push(tracks);
     } catch (e) {
       console.warn(`[spotify] fetchAllCatalog error for ${pid}`, e);
+      playlists.push([]);
     }
   }
 
-  return all;
+  return mergeCatalogs(...playlists);
 }

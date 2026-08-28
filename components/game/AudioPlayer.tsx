@@ -4,7 +4,7 @@ import * as React from "react";
 import { isIOS, IOS_VOLUME_TOOLTIP } from "@/lib/audio";
 import type { UseAudioClipReturn } from "@/hooks/useAudioClip";
 import StageProgress from "./StageProgress";
-import { STAGES } from "@/lib/constants";
+import { STAGES, STORAGE_KEYS } from "@/lib/constants";
 
 export type AudioPlayerProps = {
   audio: UseAudioClipReturn;
@@ -35,7 +35,7 @@ export default function AudioPlayer({
   // Restore volume from prefs on mount (already handled by hook, but keep UI sync)
   React.useEffect(() => {
     try {
-      const raw = window.localStorage.getItem("songspot-fr:prefs");
+      const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
       if (raw) {
         const parsed = JSON.parse(raw) as { volume?: number };
         if (typeof parsed.volume === "number") {

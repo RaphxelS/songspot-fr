@@ -14,11 +14,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    {
-      url: "https://songspot-fr.vercel.app/api/catalog",
-      lastModified: new Date(),
-      changeFrequency: "hourly",
-      priority: 0.5,
-    },
   ];
 }

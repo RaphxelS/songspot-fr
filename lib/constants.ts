@@ -15,10 +15,10 @@ const DEFAULT_PLAYLIST_IDS = [
 ] as const;
 
 /**
- * PLAYLIST_IDS : utilise SPOTIFY_PLAYLIST_IDS env si défini (csv), sinon défaut
- * Ex: SPOTIFY_PLAYLIST_IDS="id1,id2" -> ["id1","id2"]
+ * getPlaylistIds — lit SPOTIFY_PLAYLIST_IDS à chaque appel (per-request), évite évaluation build-time.
+ * Retourne csv split si env défini, sinon DEFAULT_PLAYLIST_IDS.
  */
-export const PLAYLIST_IDS: readonly string[] = (() => {
+export function getPlaylistIds(): readonly string[] {
   const env = process.env.SPOTIFY_PLAYLIST_IDS;
   if (env && env.trim().length > 0) {
     return env
@@ -27,7 +27,15 @@ export const PLAYLIST_IDS: readonly string[] = (() => {
       .filter((s) => s.length > 0);
   }
   return [...DEFAULT_PLAYLIST_IDS];
-})();
+}
+
+/**
+ * PLAYLIST_IDS : alias statique pour compat (évalué à l'import, déprécié).
+ * Préférer getPlaylistIds() pour lecture dynamique per-request.
+ * Conservé pour tests existants mais synchronisé via getPlaylistIds() fallback.
+ * @deprecated use getPlaylistIds()
+ */
+export const PLAYLIST_IDS: readonly string[] = [...DEFAULT_PLAYLIST_IDS];
 
 export const STORAGE_KEYS = {
   prefs: "songspot-fr:prefs",

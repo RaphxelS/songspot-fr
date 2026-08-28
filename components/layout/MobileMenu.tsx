@@ -2,23 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-
-const DIFFICULTES = [
-  "Toutes",
-  "Facile",
-  "Moyen",
-  "Difficile",
-  "Expert",
-  "Impossible",
-] as const;
-
-const EPOQUES = [
-  "Toutes",
-  "Classique",
-  "2000s",
-  "2010s",
-  "2020s",
-] as const;
+import DifficultySelector from "@/components/game/DifficultySelector";
+import EraFilter from "@/components/game/EraFilter";
 
 type MobileMenuProps = {
   isOpen: boolean;
@@ -40,15 +25,11 @@ export default function MobileMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const prevFocusRef = useRef<HTMLElement | null>(null);
 
-  // Mémoriser le focus précédent et donner le focus au premier élément
   useEffect(() => {
     if (isOpen) {
       prevFocusRef.current = document.activeElement as HTMLElement | null;
-      const first = menuRef.current?.querySelector<HTMLElement>(
-        'a, button, select, [tabindex]:not([tabindex="-1"])'
-      );
+      const first = menuRef.current?.querySelector<HTMLElement>('a, button, select, [tabindex]:not([tabindex="-1"])');
       first?.focus();
-      // Empêcher le défilement de l'arrière-plan
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -59,10 +40,8 @@ export default function MobileMenu({
     };
   }, [isOpen]);
 
-  // Piège de focus + fermeture Échap
   useEffect(() => {
     if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -70,9 +49,7 @@ export default function MobileMenu({
         return;
       }
       if (e.key === "Tab" && menuRef.current) {
-        const focusables = menuRef.current.querySelectorAll<HTMLElement>(
-          'a, button, select, [tabindex]:not([tabindex="-1"])'
-        );
+        const focusables = menuRef.current.querySelectorAll<HTMLElement>('a, button, select, [tabindex]:not([tabindex="-1"])');
         if (focusables.length === 0) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
@@ -89,7 +66,6 @@ export default function MobileMenu({
         }
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
@@ -97,71 +73,38 @@ export default function MobileMenu({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 sm:hidden"
-      aria-hidden={!isOpen}
-    >
-      {/* Fond assombri */}
-      <button
-        type="button"
-        aria-label="Fermer le menu"
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-        tabIndex={-1}
-      />
+    <div className="fixed inset-0 z-50 sm:hidden" aria-hidden={!isOpen}>
+      <button type="button" aria-label="Fermer le menu" className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} tabIndex={-1} />
 
-      <div
-        ref={menuRef}
-        id="menu-mobile"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menu de navigation"
-        className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white p-6 shadow-xl dark:bg-zinc-900 overflow-y-auto"
-      >
+      <div ref={menuRef} id="menu-mobile" role="dialog" aria-modal="true" aria-label="Menu de navigation" className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white p-6 shadow-xl dark:bg-zinc-900 overflow-y-auto">
         <div className="flex items-center justify-between">
           <span className="text-base font-semibold">Menu</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-zinc-200 bg-white p-2 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800"
-            aria-label="Fermer le menu"
-          >
-            <svg
-              aria-hidden="true"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
+          <button type="button" onClick={onClose} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-zinc-200 bg-white p-2 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800" aria-label="Fermer le menu">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         <nav className="mt-6 flex flex-col gap-4" aria-label="Navigation mobile">
-          <Link
-            href="/faq"
-            onClick={onClose}
-            className="rounded-md px-2 py-3 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 min-h-11 flex items-center"
-          >
+          <Link href="/faq" onClick={onClose} className="rounded-md px-2 py-3 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 min-h-11 flex items-center">
             FAQ — Foire aux questions
           </Link>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="mobile-difficulte" className="text-sm font-medium">
-              Difficulté
+          <div className="flex flex-col gap-3">
+            <DifficultySelector value={difficulte} onChange={(v) => onDifficulteChange?.(v)} id="mobile-difficulte" label="Difficulté" />
+            <select id="mobile-difficulte-select" value={difficulte} onChange={(e) => onDifficulteChange?.(e.target.value)} className="sr-only" aria-hidden="true" tabIndex={-1}>
+              {["Toutes", "Facile", "Moyen", "Difficile", "Expert", "Impossible"].map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="mobile-difficulte-fallback" className="sr-only">
+              Difficulté (liste)
             </label>
-            <select
-              id="mobile-difficulte"
-              value={difficulte}
-              onChange={(e) => onDifficulteChange?.(e.target.value)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 min-h-11"
-              aria-label="Choisir la difficulté"
-            >
-              {DIFFICULTES.map((d) => (
+            <select id="mobile-difficulte-fallback" value={difficulte} onChange={(e) => onDifficulteChange?.(e.target.value)} className="rounded-md border border-zinc-200 bg-white px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 min-h-11" aria-label="Choisir la difficulté">
+              {["Toutes", "Facile", "Moyen", "Difficile", "Expert", "Impossible"].map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
@@ -169,18 +112,20 @@ export default function MobileMenu({
             </select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="mobile-epoque" className="text-sm font-medium">
-              Époque
+          <div className="flex flex-col gap-3">
+            <EraFilter value={epoque} onChange={(v) => onEpoqueChange?.(v)} id="mobile-epoque" label="Époque" />
+            <select id="mobile-epoque-select" value={epoque} onChange={(e) => onEpoqueChange?.(e.target.value)} className="sr-only" aria-hidden="true" tabIndex={-1}>
+              {["Toutes", "Classique", "2000s", "2010s", "2020s"].map((e) => (
+                <option key={e} value={e}>
+                  {e}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="mobile-epoque-fallback" className="sr-only">
+              Époque (liste)
             </label>
-            <select
-              id="mobile-epoque"
-              value={epoque}
-              onChange={(e) => onEpoqueChange?.(e.target.value)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 min-h-11"
-              aria-label="Choisir l'époque"
-            >
-              {EPOQUES.map((e) => (
+            <select id="mobile-epoque-fallback" value={epoque} onChange={(e) => onEpoqueChange?.(e.target.value)} className="rounded-md border border-zinc-200 bg-white px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 min-h-11" aria-label="Choisir l'époque">
+              {["Toutes", "Classique", "2000s", "2010s", "2020s"].map((e) => (
                 <option key={e} value={e}>
                   {e}
                 </option>
@@ -188,11 +133,7 @@ export default function MobileMenu({
             </select>
           </div>
 
-          <Link
-            href="/"
-            onClick={onClose}
-            className="mt-2 rounded-md bg-zinc-900 px-4 py-3 text-center text-sm font-medium text-white hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 dark:bg-white dark:text-zinc-900 min-h-11 flex items-center justify-center"
-          >
+          <Link href="/" onClick={onClose} className="mt-2 rounded-md bg-zinc-900 px-4 py-3 text-center text-sm font-medium text-white hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 dark:bg-white dark:text-zinc-900 min-h-11 flex items-center justify-center">
             Retour au jeu
           </Link>
         </nav>

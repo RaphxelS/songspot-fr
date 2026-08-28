@@ -411,6 +411,7 @@ describe("lib/spotify — server-only Spotify layer (T03)", () => {
     vi.resetModules();
     vi.doMock("@/lib/constants", () => ({
       PLAYLIST_IDS: ["playlistA", "playlistB"],
+      getPlaylistIds: () => ["playlistA", "playlistB"],
       STAGES: [0.1, 0.5, 2, 8, 15],
       STORAGE_KEYS: { prefs: "songspot-fr:prefs", playedIds: "songspot-fr:playedIds" },
     }));

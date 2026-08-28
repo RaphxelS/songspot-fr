@@ -7,7 +7,7 @@ export default function Home() {
   const tracks = catalog as unknown as Track[];
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 sm:p-8">
+    <div className="flex min-h-screen flex-col items-center p-4 sm:p-8">
       <div className="w-full max-w-4xl">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
           Songspot FR
@@ -29,6 +29,6 @@ export default function Home() {
           </Suspense>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

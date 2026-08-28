@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { normalize } from "@/lib/normalize";
-import { STAGES } from "@/lib/constants";
+import { STAGES, STORAGE_KEYS } from "@/lib/constants";
 import {
   DIFFICULTY_LABELS,
   filterByDifficulty,
@@ -17,11 +17,12 @@ import {
 } from "@/lib/difficulty";
 import {
   clearPlayedIds,
-  getPlayedIds,
+  filterPlayedIdsByPool,
   getPrefs,
   pushPlayedId,
-  setPlayedIds,
   setPrefs,
+  normalizeEnabledStages,
+  FALLBACK_ENABLED_STAGES,
 } from "@/lib/storage";
 import type { Track } from "@/lib/catalog";
 
@@ -61,20 +62,8 @@ export type UseGameStateReturn = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Helpers
+// Helpers — unify via lib/storage single source
 // ─────────────────────────────────────────────────────────────
-const FALLBACK_ENABLED_STAGES: boolean[] = [true, false, false, false, false];
-
-function normalizeEnabledStages(raw: unknown): boolean[] {
-  if (!Array.isArray(raw) || raw.length !== 5) {
-    return [true, true, true, true, true];
-  }
-  const normalized = raw.map((v) => Boolean(v));
-  if (!normalized.some(Boolean)) {
-    return [...FALLBACK_ENABLED_STAGES];
-  }
-  return normalized;
-}
 
 function isCorrectGuess(guess: string, track: Track): boolean {
   const ng = normalize(guess.trim());
@@ -193,7 +182,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       // Detect raw all-false before normalization for toast
       let rawStages: unknown = undefined;
       try {
-        const raw = typeof window !== "undefined" ? window.localStorage.getItem("songspot-fr:prefs") : null;
+        const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEYS.prefs) : null;
         if (raw) {
           const parsed = JSON.parse(raw) as Record<string, unknown>;
           rawStages = parsed.enabledStages;
@@ -319,26 +308,11 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       prev && prev.includes("Au moins un palier") ? prev : null,
     );
 
-    // filter playedIds.filter(id ∈ pool)
-    let played: string[] = [];
-    try {
-      played = getPlayedIds();
-    } catch {
-      played = [];
-    }
+    // Q-03 reuse helper filterPlayedIdsByPool (single source, per-pool filter)
     const poolIds = pool.map((t) => t.id);
-    const poolSet = new Set(poolIds);
-    const filteredPlayed = played.filter((id) => poolSet.has(id));
-    if (filteredPlayed.length !== played.length) {
-      try {
-        setPlayedIds(filteredPlayed);
-      } catch {
-        // ignore
-      }
-      played = filteredPlayed;
-    }
+    const filteredPlayed = filterPlayedIdsByPool(poolIds);
 
-    let available = pool.filter((t) => !played.includes(t.id));
+    let available = pool.filter((t) => !filteredPlayed.includes(t.id));
 
     // Si poolExhausted → playedIds=[] reset filtré
     if (available.length === 0) {
@@ -348,7 +322,6 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
         // ignore
       }
       available = pool;
-      played = [];
     }
 
     // pickRandom — Math.random() uniquement ici (dans callback appelé depuis useEffect ou user action)
@@ -392,7 +365,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
         next.length === 5 &&
         !next.some(Boolean) &&
         normalized[0] === true &&
-        normalized.slice(1).every((v) => !v);
+        normalized.slice(1).every((v: boolean) => !v);
       // also handle case where next is all false but normalize returns fallback
       if (isFallback) {
         setToast(

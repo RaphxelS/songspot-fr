@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from "./constants";
+
 /**
  * Helpers audio — iOS detection, clamp volume, messages
  * Co-localisé avec hooks/useAudioClip (T05)
@@ -107,7 +109,7 @@ export function mapPlayError(err: unknown): string | null {
 export function getStoredVolume(fallback = 0.8): number {
   try {
     if (typeof window === "undefined" || typeof window.localStorage === "undefined") return clampVolume(fallback);
-    const raw = window.localStorage.getItem("songspot-fr:prefs");
+    const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
     if (!raw) return clampVolume(fallback);
     const parsed = JSON.parse(raw) as { volume?: unknown };
     if (typeof parsed.volume === "number") return clampVolume(parsed.volume);
@@ -125,7 +127,7 @@ export function setStoredVolume(volume: number): void {
   try {
     if (typeof window === "undefined" || typeof window.localStorage === "undefined") return;
     const clamped = clampVolume(volume);
-    const raw = window.localStorage.getItem("songspot-fr:prefs");
+    const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
     let prefs: Record<string, unknown> = {};
     if (raw) {
       try {
@@ -135,7 +137,7 @@ export function setStoredVolume(volume: number): void {
       }
     }
     prefs.volume = clamped;
-    window.localStorage.setItem("songspot-fr:prefs", JSON.stringify(prefs));
+    window.localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify(prefs));
   } catch {
     // silencieux Safari privé quota
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { STORAGE_KEYS } from "@/lib/constants";
 import {
   AUDIO_ERRORS,
   clampVolume,
@@ -98,10 +99,10 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
       }
     }
     try {
-      const raw = window.localStorage.getItem("songspot-fr:prefs");
+      const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
       const prefs = raw ? JSON.parse(raw) : {};
       prefs.volume = clamped;
-      window.localStorage.setItem("songspot-fr:prefs", JSON.stringify(prefs));
+      window.localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify(prefs));
     } catch {
       // fallback mémoire — ignore
     }
@@ -132,7 +133,7 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
     // iOS detection + restore volume from storage
     try {
       setIsIOSState(checkIsIOS());
-      const raw = window.localStorage.getItem("songspot-fr:prefs");
+      const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
       if (raw) {
         const prefs = JSON.parse(raw);
         if (typeof prefs.volume === "number") {

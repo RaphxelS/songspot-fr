@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import AppDifficultyProvider from "./DifficultyProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,21 +39,23 @@ export default function RootLayout({
           Aller au contenu principal
         </a>
         <ErrorBoundary>
-          <Header />
-          <main
-            id="contenu-principal"
-            tabIndex={-1}
-            className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 focus:outline-none"
-          >
-            {children}
-          </main>
-          <div
-            aria-live="polite"
-            aria-atomic="true"
-            className="sr-only"
-            id="annonces-stage"
-          />
-          <Footer />
+          <AppDifficultyProvider>
+            <Header />
+            <main
+              id="contenu-principal"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 focus:outline-none"
+            >
+              {children}
+            </main>
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+              id="annonces-stage"
+            />
+            <Footer />
+          </AppDifficultyProvider>
         </ErrorBoundary>
       </body>
     </html>

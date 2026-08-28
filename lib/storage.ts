@@ -89,7 +89,7 @@ function safeRemoveItem(key: string): void {
 // ─────────────────────────────────────────────────────────────
 // Helpers validation
 // ─────────────────────────────────────────────────────────────
-function normalizeEnabledStages(raw: unknown): boolean[] {
+export function normalizeEnabledStages(raw: unknown): boolean[] {
   if (!Array.isArray(raw) || raw.length !== 5) {
     return [...DEFAULT_PREFS.enabledStages];
   }

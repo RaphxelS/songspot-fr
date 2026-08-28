@@ -22,10 +22,10 @@ describe("GET /api/catalog — route handler (T03)", () => {
     vi.restoreAllMocks();
   });
 
-  it("route exporte revalidate=3600 et dynamic='force-dynamic'", () => {
+  it("route exporte revalidate=3600 et pas de dynamic force-dynamic (isolation revalidate alone)", () => {
     const content = readFileSync(resolve("app/api/catalog/route.ts"), "utf-8");
     expect(content).toContain("export const revalidate = 3600");
-    expect(content).toContain('export const dynamic = "force-dynamic"');
+    expect(content).not.toContain('dynamic = "force-dynamic"');
   });
 
   it("route contient Cache-Control public, s-maxage=3600, stale-while-revalidate=86400", () => {

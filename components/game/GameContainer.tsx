@@ -12,6 +12,7 @@ import EmptyPoolCard from "./EmptyPoolCard";
 import RerollButton from "./RerollButton";
 import ShareButton from "./ShareButton";
 import { parseShareUrl } from "@/lib/share";
+import { useDifficulty } from "@/components/game/DifficultyContext";
 import type { Track } from "@/lib/catalog";
 
 export type GameContainerProps = {
@@ -23,6 +24,36 @@ export default function GameContainer({ catalog }: GameContainerProps) {
   const audio = useAudioClip(game.track?.preview_url ?? null);
   const searchParams = useSearchParams();
   const hasHandledChallenge = React.useRef(false);
+  const difficultyCtx = useDifficulty();
+
+  // ── A1: Sync Header (Context/storage) ↔ GameContainer filteredPool ──
+  React.useEffect(() => {
+    if (!game.isHydrated) return;
+    if (difficultyCtx.difficulty !== game.difficulty) {
+      game.setDifficulty(difficultyCtx.difficulty);
+    }
+  }, [difficultyCtx.difficulty, game.difficulty, game.isHydrated, game.setDifficulty]);
+
+  React.useEffect(() => {
+    if (!game.isHydrated) return;
+    if (difficultyCtx.era !== game.era) {
+      game.setEra(difficultyCtx.era);
+    }
+  }, [difficultyCtx.era, game.era, game.isHydrated, game.setEra]);
+
+  React.useEffect(() => {
+    if (!game.isHydrated) return;
+    if (game.difficulty !== difficultyCtx.difficulty) {
+      difficultyCtx.setDifficulty(game.difficulty);
+    }
+  }, [game.difficulty, game.isHydrated, difficultyCtx.difficulty, difficultyCtx.setDifficulty]);
+
+  React.useEffect(() => {
+    if (!game.isHydrated) return;
+    if (game.era !== difficultyCtx.era) {
+      difficultyCtx.setEra(game.era);
+    }
+  }, [game.era, game.isHydrated, difficultyCtx.era, difficultyCtx.setEra]);
 
   // Pause audio when won/lost revealed
   React.useEffect(() => {
