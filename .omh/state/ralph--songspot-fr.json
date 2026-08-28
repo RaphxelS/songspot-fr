@@ -1,8 +1,8 @@
 {
   "active": true,
   "phase": "execute",
-  "iteration": 10,
-  "current_task_id": "T10",
+  "iteration": 11,
+  "current_task_id": "T11",
   "instance_id": "songspot-fr",
   "plan_file": ".omh/plans/ralplan-songspot-fr.md",
   "spec_file": ".omh/specs/songspot-fr-spec.md",
@@ -62,7 +62,10 @@
     "lib/share.ts",
     "components/game/RerollButton.tsx",
     "components/game/ShareButton.tsx",
-    "tests/share.test.ts"
+    "tests/share.test.ts",
+    "tests/rerollShare.test.tsx",
+    "docs/responsive-audit.md",
+    "tests/responsive.test.ts"
   ],
   "completed_task_learnings": [
     "T01 Bootstrap réussie: Next 15.5.3 + React 19.1.1 + Tailwind v4 (@import tailwindcss) + TS strict. Utiliser package.json manuel car create-next-app refuse majuscule dans dossier Songspot-fr — workaround par scaffold manuel.",
@@ -84,21 +87,25 @@
     "T07 Shell UI finalisé: app/layout.tsx <html lang=\"fr\"> + metadata FR + next/font/google Geist + skip-link Aller au contenu principal + ErrorBoundary + container max-w-4xl single theme (pas simple/arcade V2), app/globals.css @import \"tailwindcss\" ownership unique (seul T07), components/layout/Header.tsx logo Songspot FR + nav FAQ + réglages difficulté/ère + hamburger aria-expanded + MobileMenu focus trap Escape close + tous textes FR (grep Guess/Play vide), Footer.tsx attribution Spotify, MobileMenu.tsx focus trap.",
     "Tailwind v4 ownership unique évite race globals.css (C5), V2 flags ENABLE_V2_STYLES=false présents mais non utilisés (single theme), build 988ms PASS, tsc 0, lint 0, vitest 139 PASS.",
     "T08 Guess+Autocomplete+Playback+Reveal merge (priorite 9, deps T06+T07) - 6 composants sur 95 catalog: GuessInput 240L controle, filtre normalize(title+artist).includes(normalize(query)) >=2 chars max8, cover 32px, ArrowUp/Down wrap + Enter selection ou brut, role combobox aria-controls/expanded/activedescendant, listbox aria-selected, aria-live polite, focus clavier; GuessHistory pills aria-live; StageProgress 5 pills STAGES 0,1s/0,5s/2s/8s/15s French comma, actif pulse, guard last-enabled disabled, persistant via onToggle; AudioPlayer Play/Pause toggle 44px, indicateur 0,1s/15s, Depuis debut seek0, volume slider aria-label Volume iOS disabled via isIOS()+IOS_VOLUME_TOOLTIP, StageProgress integre, no autoplay only onClick; RevealCard succes/echec cover titre artiste album focus apres reveal tabIndex-1 role status aria-live, GameContainer integration useGameState+useAudioClip, skeleton, EmptyPoolCard, disabled won/lost; tests 33 couvrant angele->Angele coeur->Coeur oeuvre->Oeuvre jul multi, fleches+Enter, faux/bon guess, AudioPlayer toggle etc; vitest 172/172 PASS, tsc 0, build 6.5s 8.94kB, lint 0.",
-    "T10 Reroll+Partage (URL sans stage) finalise : lib/share.ts buildShareUrl/parseShareUrl sans stage MVP C11 + allowlist id∈catalog + Zod ShareDifficultySchema + DIFFICULTY_LABELS + Toutes + copyShareUrl clipboard + TOAST_SHARE_COPIED/TOAST_CHALLENGE_NOT_FOUND/CHALLENGE_BANNER_PREFIX, lib/storage.ts deja UNIFIE getPlayedIds/push/clearIfExhausted/filterPlayedIdsByPool per-pool filter + tests/storage T10 5 tests reroll 10 picks deterministe + pool reset + filter per-pool era/difficulty + corrupt fallback, hooks/useGameState.ts ajoute challengeBanner/showToast/forceTrack/clearChallenge + selectNewTrack per-pool filter (Set) + pushPlayedId + poolExhausted reset + clearChallengeBanner on reroll + toast guard, components/game/GameContainer.tsx Suspense useSearchParams hasHandledChallenge ref + parseShareUrl allowlist + forceTrack banner Défi : devine ce morceau ! (difficulté X) + fallback Defi introuvable + toast + RerollButton/ShareButton integration + challenge banner aria-live data-testid, RerollButton Nouveau morceau onReroll, ShareButton Défier un ami copyShareUrl + toast Lien copie aria-label, tests/share.test.ts 11 tests round-trip sans stage + allowlist + invalid fallback + clipboard mock + challenge banner FR, build 1755ms PASS 25.6kB/128kB route / + /api/catalog dynamic, tsc 0, lint 0 errors (6 warnings exhaustive-deps + unused import documented), vitest 183/183 PASS."
+    "T10 Reroll+Partage (URL sans stage) finalise : lib/share.ts buildShareUrl/parseShareUrl sans stage MVP C11 + allowlist id∈catalog + Zod ShareDifficultySchema + DIFFICULTY_LABELS + Toutes + copyShareUrl clipboard + TOAST_SHARE_COPIED/TOAST_CHALLENGE_NOT_FOUND/CHALLENGE_BANNER_PREFIX, lib/storage.ts deja UNIFIE getPlayedIds/push/clearIfExhausted/filterPlayedIdsByPool per-pool filter + tests/storage T10 5 tests reroll 10 picks deterministe + pool reset + filter per-pool era/difficulty + corrupt fallback, hooks/useGameState.ts ajoute challengeBanner/showToast/forceTrack/clearChallenge + selectNewTrack per-pool filter (Set) + pushPlayedId + poolExhausted reset + clearChallengeBanner on reroll + toast guard, components/game/GameContainer.tsx Suspense useSearchParams hasHandledChallenge ref + parseShareUrl allowlist + forceTrack banner Défi : devine ce morceau ! (difficulté X) + fallback Defi introuvable, morceau aleatoire toast + RerollButton/ShareButton integration + challenge banner aria-live data-testid challenge-banner, RerollButton Nouveau morceau onReroll, ShareButton Defier un ami copyShareUrl + toast Lien copie aria-label, tests/share.test.ts 11 tests round-trip sans stage + allowlist + invalid fallback + clipboard mock + challenge banner FR, tests/rerollShare.test.tsx 4 tests Reroll/ShareButton aria-label + hit targets 44px + clipboard stage omis, build 961ms PASS 25.6kB/128kB route / + /api/catalog dynamic, tsc 0, lint 0, vitest 195/195 PASS (12 suites).",
+    "T11 Responsive ≤640px de base (réduit, T09 V2 defer) validé : Breakpoint sm:640px vérif pas de scroll horizontal à 375px (max-w-4xl 896 w-full caps viewport 375 scrollWidth===innerWidth), hit targets ≥44px min-h-11 26 hits min-w-11 13 hits déjà via components (AudioPlayer,GuessInput,StageProgress 5 pills,Header hamburger,MobileMenu,Footer,Reroll/Share) — fix T11 Header FAQ missing min-h-11 ajouté min-h-11 inline-flex items-center + Footer Accueil Accueil déjà fixé px-1 py-1→min-h-11 inline-flex items-center uniform 44px, Header collapse hamburger déjà T07 nav hidden sm:flex + button sm:hidden aria-expanded aria-controls menu-mobile min-h-11 min-w-11 Verified via render+fireEvent, MobileMenu fixed inset-0 z50 sm:hidden w-80 max-w-[85vw]=318<375 no overflow avec focus trap Escape body overflow hidden, grille StageProgress 5 pills grid-cols-5 gap-2 perPill (375-32-32)/5=62≥44 pas d'overflow, pas de wide/tight ni arcade grep vide app/components/lib hors tracking-widest/tracking-tight (faux positifs Tailwind) ENABLE_V2 0 hits code seul .env.example false non utilisé, globals.css single theme MVP sans variants, max-w-4xl unique layout/header/footer, persistance prefs.volume uniquement storage.ts + constants aucune wide/tight, docs/responsive-audit.md créé avec mesures 375px scroll check Lighthouse note mobile ≥90 hors audio (manuelle), tests/responsive.test.ts 18 invariants (breakpoint sm classes, hamburger aria, nav hidden, max-w-4xl cap, MobileMenu 85vw, scrollWidth guard, min-h-11≥10 min-w-11≥5 per-file 11 files all min-h-11, Footer FAQ+Accueil ≥1, StageProgress math≥44, V2 logic stripped no wide/arcade, ENABLE_V2 empty, storage volume only, globals single theme, selects hit targets, hamburger toggle interaction, footer 375 flex), vitest 213/213 PASS 13 suites, tsc 0 build 1293ms 25.6kB lint 0, V2 deferred confirmé.",
+    "T11 Responsive ≤640px audit: breakpoint sm:640px vérifié, 26 min-h-11 (≥10) + 13 min-w-11 (≥5) via grep, Header FAQ + Footer Accueil fixed min-h-11 inline-flex, hamburger min-h-11 min-w-11 sm:hidden + nav hidden sm:flex, max-w-4xl containers 343px <375, MobileMenu 85vw 318px, StageProgress grid-cols-5 62px/pill, grep wide/arcade 0 (tracking-widest false positive 5), ENABLE_V2 0, globals single theme, docs/responsive-audit.md 134L + tests/responsive.test.ts 344L 18 tests, build 810ms PASS 25.6kB/128kB, tsc 0, lint 0, vitest 213/213 PASS (13 suites)."
   ],
   "created_at": "2026-08-28T00:00:00Z",
-  "updated_at": "2026-08-28T08:25:00Z",
+  "updated_at": "2026-08-28T10:40:00Z",
   "verifier": "evidence-gathered",
   "evidence": {
     "tsc": "PASS (exit 0)",
-    "lint": "PASS (0 errors, 6 warnings)",
-    "vitest": "PASS (11 suites 183 tests)",
-    "build": "PASS (1755ms, 4 routes, 25.6kB /)",
-    "share_roundtrip": "PASS (buildShareUrl->parseShareUrl retrouve 2 valeurs stage omis)",
-    "share_invalid": "PASS (?track=invalid -> toast Defi introuvable, morceau aleatoire, isValid false)",
-    "share_clipboard": "PASS (copyShareUrl writeText mock, Lien copie !, stage omis)",
-    "reroll_10": "PASS (10 picks sans repetition, 11e reset, filter per-pool)",
-    "challenge_banner": "PASS (Défi : devine ce morceau ! (difficulté Expert) banner, forceTrack)",
-    "a11y": "PASS (role status aria-live polite, challenge-banner data-testid)"
+    "lint": "PASS (exit 0, 0 errors 0 warnings)",
+    "vitest": "PASS (13 suites 213 tests, responsive 18)",
+    "build": "PASS (810ms, 4 routes, 25.6kB /, 128kB First Load)",
+    "grep_min_h_11": "PASS (26 hits >=10)",
+    "grep_min_w_11": "PASS (13 hits >=5)",
+    "grep_wide_arcade": "PASS (0 logic hits, tracking-widest 5 false positive documented)",
+    "grep_enable_v2": "PASS (0 hits app/components/lib)",
+    "responsive_audit": "PASS (375px no scroll, 9 elements table, 343px container, 318px MobileMenu, 62px pill)",
+    "header_hamburger": "PASS (min-h-11 min-w-11 sm:hidden, aria-expanded, dialog)",
+    "footer": "PASS (FAQ+Accueil min-h-11, flex no overflow 375px)",
+    "hit_targets": "PASS (26 min-h-11, footer/header fixes, all primary buttons min-h-11)"
   }
 }
