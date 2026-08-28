@@ -86,7 +86,7 @@ export default function Header({
         >
           <Link
             href="/faq"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 rounded px-2 py-1"
+            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 rounded px-2 py-1 min-h-11 inline-flex items-center"
           >
             FAQ
           </Link>

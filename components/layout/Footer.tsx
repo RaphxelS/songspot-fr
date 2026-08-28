@@ -29,7 +29,7 @@ export default function Footer() {
             </Link>
             <Link
               href="/"
-              className="text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 rounded px-1 py-1"
+              className="text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 rounded px-1 py-1 min-h-11 inline-flex items-center"
             >
               Accueil
             </Link>
