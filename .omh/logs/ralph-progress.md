@@ -670,3 +670,63 @@ LINT_EXIT:0
 ### Next Task
 - T08 — Guess+Autocomplete+Playback+Reveal (priority 9, needs T06+T07) — now unblocked
 - T10 — Reroll+Partage (priority 10, needs T06) — also eligible
+
+## Iteration 9 — 2026-08-28 — T08 Composant Guess + Autocomplete + Playback + Reveal (merge T08+T09) [APPROVE]
+
+### Task
+- **ID**: T08 — Composant Guess + Autocomplete + Playback + Reveal (merge T08+T09)
+- **Complexity**: M (4-5h merge)
+- **Dependencies**: T06 PASS, T07 PASS
+- **Priority**: 9
+
+### Files Created/Modified (9)
+- `components/game/GuessInput.tsx` (nouveau, 240L, input controle, filtre normalize >=2 chars max8, title — artist + cover 32px, ArrowUp/Down wrap + Enter selection ou brut, a11y combobox/listbox/aria-selected/aria-live, focus clavier, bouton Proposer min-h-11)
+- `components/game/GuessHistory.tsx` (nouveau, 58L, pills essais passes, role list/listitem, aria-live)
+- `components/game/StageProgress.tsx` (nouveau, 108L, 5 pills STAGES 0,1s/0,5s/2s/8s/15s French comma, aria-pressed, actif pulse, guard dernier disabled, toggle persistant via onToggle, hit targets 44px)
+- `components/game/AudioPlayer.tsx` (nouveau, 148L, Play/Pause toggle 44px, indicateur 0,1s/15s, Depuis debut seek0, volume slider aria-label Volume + iOS disabled isIOS()+IOS_VOLUME_TOOLTIP, StageProgress integre, no autoplay only onClick)
+- `components/game/RevealCard.tsx` (nouveau, 115L, succes/echec cover titre artiste album, tabIndex -1 role status aria-live, focus apres reveal, data-testid reveal-card)
+- `components/game/GameContainer.tsx` (nouveau, 105L, integration useGameState+useAudioClip, skeleton, EmptyPoolCard, disabled won/lost)
+- `app/page.tsx` (modifie, Server + Suspense GameContainer + catalog)
+- `tests/gameComponents.test.tsx` (nouveau, 756L, 33 tests couvrant angele->Angele, jul multi, fleches+Enter, faux/bon guess etc)
+- `tests/setup.ts` (modifie, ajout import jest-dom)
+
+### Acceptance Criteria Evidence
+- [x] Taper angele propose Angele (accent-insensitive + ligature coeur->Coeur) PASS
+- [x] Taper jul propose plusieurs Jul PASS
+- [x] Fleches + Enter selectionnent et soumettent PASS
+- [x] Faux guess avance stageIndex+1 + pill + aria-live PASS
+- [x] Bon guess won + RevealCard focus PASS
+- [x] AudioPlayer Play toggle + Depuis debut seek0 + hit targets 44px PASS
+- [x] Volume slider aria-label Volume + iOS disabled PASS
+- [x] StageProgress 5 pills toggle persistant guard>=1 PASS
+- [x] Aucun audio.play() sans interaction PASS
+- [x] Dropdown role listbox aria-selected PASS
+- [x] Tests co-localises PASS
+
+### Evidence Capturee
+```
+> npx vitest run
+Test Files 10 passed (10)
+Tests 172 passed (172)
+
+> npx tsc --noEmit
+TSC_EXIT:0
+
+> npm run lint
+LINT_EXIT:0
+
+> npm run build
+Compiled successfully in 6.5s
+Route / 8.94kB 111kB
+```
+
+### Verifier Verdict
+- **APPROVE** — tous criteres T08 verifies avec preuves reelles (vitest 33/33 T08 + 172 total, tsc 0, build 6.5s, lint 0, a11y, hit targets, iOS, no autoplay, stage progression, guess flow).
+
+### Learnings pour T10+
+- GuessInput normalize pattern, StageProgress dense/sparse mapping, AudioPlayer no autoplay only onClick, RevealCard focus tabIndex-1, GameContainer integration, tests jest-dom import, getAllByText pour titres dupliques, img querySelector vs getByRole.
+
+### Next Task
+- T10 — Reroll sans repetition + Partage Defi ami (eligible, priority 10)
+
+---

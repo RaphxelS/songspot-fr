@@ -1,8 +1,8 @@
 {
   "active": true,
   "phase": "execute",
-  "iteration": 8,
-  "current_task_id": "T07",
+  "iteration": 9,
+  "current_task_id": "T08",
   "instance_id": "songspot-fr",
   "plan_file": ".omh/plans/ralplan-songspot-fr.md",
   "spec_file": ".omh/specs/songspot-fr-spec.md",
@@ -51,7 +51,14 @@
     "tests/setup.ts",
     "components/layout/Header.tsx",
     "components/layout/Footer.tsx",
-    "components/layout/MobileMenu.tsx"
+    "components/layout/MobileMenu.tsx",
+    "components/game/GuessInput.tsx",
+    "components/game/GuessHistory.tsx",
+    "components/game/AudioPlayer.tsx",
+    "components/game/StageProgress.tsx",
+    "components/game/RevealCard.tsx",
+    "components/game/GameContainer.tsx",
+    "tests/gameComponents.test.tsx"
   ],
   "completed_task_learnings": [
     "T01 Bootstrap réussie: Next 15.5.3 + React 19.1.1 + Tailwind v4 (@import tailwindcss) + TS strict. Utiliser package.json manuel car create-next-app refuse majuscule dans dossier Songspot-fr — workaround par scaffold manuel.",
@@ -71,21 +78,24 @@
     "EmptyPoolCard.tsx (66L): client component data-testid empty-pool-card role alert aria-live polite, FR copy 'Aucun morceau disponible', message fallback Toutes difficulté/époque, bouton 'Afficher tous les morceaux' min-h-11 min-w-11 aria-label Réinitialiser, Tailwind amber palette, 66 lignes, utils.",
     "Tests T06: 28 tests gameState + 19 storage =47 pour T06, total 139/139 PASS 9 suites (storage 19, gameState 28, audio 15, difficulty 27, spotify 16, api-catalog 11, catalog 8, normalize 8, validation 7), tsc 0, build 1131ms (Compiled successfully, 3 routes, linting valid), lint 0 (après fix prefer-const let→const + anonymous default export → storage const + eslint-disable unused). Vérifs: STAGES exact [0.1,0.5,2,8,15] hook+constants, enabledStages [true,false,true,true,true] saute 0.5→2s (stageIndex 0→1 currentStageSeconds 2, all-false → [true,false,false,false,false]+toast+persist), isHydrated true après mount track non-null via useEffect (skeleton avant, random Math.random 1 fois initial, pas de pick SSR), localStorage prefs persist reload conserve enabledStages/difficulty, submitGuess ANGÈLE→angele match Angèle + coeur→coeur match Cœur (ligature œ/Œ/æ) + Œuvre→oeuvre, filteredPool [] → isEmptyPool true track null isLoading false toast fallback Toutes resetFilters, playedIds filtré per-pool (other-id-not-in-pool filtré, Classic pool 1), corrupt '{broken' fallback mémoire pas de crash, poolExhausted 2/2 → reset 1, selectNewTrack random dans available, 5 échecs → lost revealed true stageIndex 4 current 15, skip 1 stage → lost, getNextEnabledStageIndex helper exporté.",
     "T07 Shell UI finalisé: app/layout.tsx <html lang=\"fr\"> + metadata FR + next/font/google Geist + skip-link Aller au contenu principal + ErrorBoundary + container max-w-4xl single theme (pas simple/arcade V2), app/globals.css @import \"tailwindcss\" ownership unique (seul T07), components/layout/Header.tsx logo Songspot FR + nav FAQ + réglages difficulté/ère + hamburger aria-expanded + MobileMenu focus trap Escape close + tous textes FR (grep Guess/Play vide), Footer.tsx attribution Spotify, MobileMenu.tsx focus trap.",
-    "Tailwind v4 ownership unique évite race globals.css (C5), V2 flags ENABLE_V2_STYLES=false présents mais non utilisés (single theme), build 988ms PASS, tsc 0, lint 0, vitest 139 PASS."
+    "Tailwind v4 ownership unique évite race globals.css (C5), V2 flags ENABLE_V2_STYLES=false présents mais non utilisés (single theme), build 988ms PASS, tsc 0, lint 0, vitest 139 PASS.",
+    "T08 Guess+Autocomplete+Playback+Reveal merge (priorite 9, deps T06+T07) - 6 composants sur 95 catalog: GuessInput 240L controle, filtre normalize(title+artist).includes(normalize(query)) >=2 chars max8, cover 32px, ArrowUp/Down wrap + Enter selection ou brut, role combobox aria-controls/expanded/activedescendant, listbox aria-selected, aria-live polite, focus clavier; GuessHistory pills aria-live; StageProgress 5 pills STAGES 0,1s/0,5s/2s/8s/15s French comma, actif pulse, guard last-enabled disabled, persistant via onToggle; AudioPlayer Play/Pause toggle 44px, indicateur 0,1s/15s, Depuis debut seek0, volume slider aria-label Volume iOS disabled via isIOS()+IOS_VOLUME_TOOLTIP, StageProgress integre, no autoplay only onClick; RevealCard succes/echec cover titre artiste album focus apres reveal tabIndex-1 role status aria-live, GameContainer integration useGameState+useAudioClip, skeleton, EmptyPoolCard, disabled won/lost; tests 33 couvrant angele->Angele coeur->Coeur oeuvre->Oeuvre jul multi, fleches+Enter, faux/bon guess, AudioPlayer toggle etc; vitest 172/172 PASS, tsc 0, build 6.5s 8.94kB, lint 0."
   ],
   "created_at": "2026-08-28T00:00:00Z",
-  "updated_at": "2026-08-28T07:55:39.919912Z",
+  "updated_at": "2026-08-28T08:11:30Z",
   "verifier": "evidence-gathered",
   "evidence": {
     "tsc": "PASS (exit 0)",
     "lint": "PASS (exit 0)",
-    "vitest": "PASS (9 suites 139 tests)",
-    "build": "PASS (988ms, 4 pages)",
-    "grep_fr": "PASS (0 Guess/Play/Skip/Share)",
-    "lang_fr": "PASS",
-    "font_google": "PASS",
-    "globals_css": "PASS (@import tailwindcss, no tailwind.config.ts)",
-    "header_a11y": "PASS (aria-expanded, focus trap, Escape, skip-link)",
-    "v2_flags": "PASS (ENABLE_V2_STYLES false non utilisé)"
+    "vitest": "PASS (10 suites 172 tests)",
+    "build": "PASS (6.5s, 3 routes, 8.94kB /)",
+    "grep_fr": "PASS (FR copy, Lecture/Pause/Proposer/Depuis debut)",
+    "a11y": "PASS (role listbox, aria-selected, aria-live, combobox, focus)",
+    "hit_targets": "PASS (all interactive >=44px min-h-11)",
+    "ios": "PASS (isIOS detection, IOS_VOLUME_TOOLTIP, volume disabled on iOS)",
+    "no_autoplay": "PASS (no audio.play() on mount, only onClick)",
+    "stage_progress": "PASS (5 pills 0,1s/0,5s/2s/8s/15s, toggle persistant, guard >=1, actif pulse)",
+    "guess_accent": "PASS (angele->Angele, coeur->Coeur, oeuvre->Oeuvre, jul->Jul multi, max8, cover)",
+    "game_flow": "PASS (faux guess stage+1 + pill + aria-live, bon guess won+RevealCard focus)"
   }
 }

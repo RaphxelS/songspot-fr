@@ -210,8 +210,10 @@
     ],
     "complexity": "M",
     "priority": 9,
-    "passes": false,
-    "verifier_verdict": null
+    "passes": true,
+    "verifier_verdict": "APPROVE",
+    "evidence": "vitest 33/33 T08 PASS (angele->Angele, jul multi, fleches+Enter, faux/bon guess, AudioPlayer toggle + Depuis debut seek0, volume iOS disabled, StageProgress 5 pills toggle persistant guard>=1, no autoplay, role listbox aria-selected, hit targets 44px), tsc 0, build 6.5s 8.94kB, lint 0, integration useGameState/useAudioClip/normalize",
+    "completed_at": "2026-08-28T08:11:30Z"
   },
   {
     "id": "T09",
