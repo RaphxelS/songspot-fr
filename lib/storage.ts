@@ -7,6 +7,7 @@
  */
 
 import { STORAGE_KEYS } from "./constants";
+import { clampVolume } from "./audio";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -98,12 +99,6 @@ export function normalizeEnabledStages(raw: unknown): boolean[] {
     return [...FALLBACK_ENABLED_STAGES];
   }
   return normalized;
-}
-
-function clampVolume(v: number): number {
-  if (typeof v !== "number" || Number.isNaN(v)) return 0;
-  if (!Number.isFinite(v)) return v > 0 ? 1 : 0;
-  return Math.min(1, Math.max(0, v));
 }
 
 // ─────────────────────────────────────────────────────────────

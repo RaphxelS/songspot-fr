@@ -27,11 +27,13 @@ export default function GameContainer({ catalog }: GameContainerProps) {
   const difficultyCtx = useDifficulty();
 
   // ── A1: Sync Header (Context/storage) ↔ GameContainer filteredPool ──
+  // game/difficultyCtx objects are unstable (new referential each render); depend on stable primitives only.
   React.useEffect(() => {
     if (!game.isHydrated) return;
     if (difficultyCtx.difficulty !== game.difficulty) {
       game.setDifficulty(difficultyCtx.difficulty);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [difficultyCtx.difficulty, game.difficulty, game.isHydrated, game.setDifficulty]);
 
   React.useEffect(() => {
@@ -39,6 +41,7 @@ export default function GameContainer({ catalog }: GameContainerProps) {
     if (difficultyCtx.era !== game.era) {
       game.setEra(difficultyCtx.era);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [difficultyCtx.era, game.era, game.isHydrated, game.setEra]);
 
   React.useEffect(() => {
@@ -46,6 +49,7 @@ export default function GameContainer({ catalog }: GameContainerProps) {
     if (game.difficulty !== difficultyCtx.difficulty) {
       difficultyCtx.setDifficulty(game.difficulty);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.difficulty, game.isHydrated, difficultyCtx.difficulty, difficultyCtx.setDifficulty]);
 
   React.useEffect(() => {
@@ -53,6 +57,7 @@ export default function GameContainer({ catalog }: GameContainerProps) {
     if (game.era !== difficultyCtx.era) {
       difficultyCtx.setEra(game.era);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.era, game.isHydrated, difficultyCtx.era, difficultyCtx.setEra]);
 
   // Pause audio when won/lost revealed
