@@ -1111,3 +1111,104 @@ coverage/** ignored via eslint.config.mjs PASS
 - T09 — (V2 DEFERRED) Responsive avancée + styles wide/tight + simple/arcade (eligible, priority 14, depends T07 PASS) — backlog V2, docs/v2-styles-backlog.md à créer en T14
 - T14 — Build, lint, typecheck, polish prod (eligible, priority 15, depends T01+T02+T05+T06+T08) — vertical slice gate final, vérifier build/start/lint/tsc + README + robots/sitemap
 ---
+
+---
+
+## Iteration 14 — 2026-08-28 — T09 (V2 DEFERRED) Responsive avancée + styles wide/tight + simple/arcade [APPROVE]
+
+### Task
+- **ID**: T09 — (V2 DEFERRED) Responsive avancée + styles wide/tight + simple/arcade
+- **Complexity**: M (3h) — **non bloquant build**, flag `ENABLE_V2_STYLES=false`
+- **Dependencies**: T07 PASS (Shell UI single theme max-w-4xl)
+- **Priority**: 14 (V2 deferred, lowest eligible before T14 priority 15)
+- **Status**: V2 deferred, non bloquant build — placeholder docs only, pas de code wide/tight, laisse single theme MVP
+
+### Files Created/Modified (1)
+- `docs/v2-styles-backlog.md` (nouveau, 8559 bytes, placeholder V2, scope wide/tight + simple/arcade, flag, estimation, backlog, garanties MVP)
+
+### Acceptance Criteria Evidence
+- [x] `docs/v2-styles-backlog.md` existe, décrit `wide/tight` + `simple/arcade` scope V2 → **PASS** (8559 bytes, 19× `wide` 17× `tight` 19× `arcade` 13× `ENABLE_V2_STYLES`, `max-w-6xl` vs `max-w-3xl` via classe sur `<main>` + `gradient`/`glow` + `data-style` vars, estimation 3h M backlog V2-1/2/3)
+- [x] `.env.example` `ENABLE_V2_STYLES=false` documenté → **PASS** (cat `.env.example` ligne 6 `ENABLE_V2_STYLES=false`, 5 vars totales, grep `ENABLE_V2_STYLES=false` 1 hit, jamais importé en code `app/components/lib` 0 hit)
+- [x] T07 responsive de base suffit : à 375px pas de scroll horizontal, hamburger présent si implémenté en T07, sinon documenté comme V2 → **PASS** (T07 `max-w-4xl` unique 6 hits layout/header/footer/page/loading/error, `docs/responsive-audit.md` §1 375px `scrollWidth===innerWidth` 343px <375, hamburger `sm:hidden` + `MobileMenu` `fixed inset-0 z-50 sm:hidden w-80 max-w-[85vw]` 318px, StageProgress `grid-cols-5` 62px/pill, hit targets 24 `min-h-11`)
+- [x] Aucun code `wide/tight` n'est requis pour `npm run build` MVP → **PASS** (grep `-rn wide` 4 hits `tracking-widest` Tailwind faux positifs `GuessHistory/RevealCard/StageProgress/Header tracking-widest/tight` non V2, `grep -rn arcade` 0 hit `app/components/lib`, `grep -rn ENABLE_V2` 0 hit `app/components/lib` seuls `tests/responsive.test.ts` pattern, `grep max-w-6xl|3xl` 0 hit `app/components`, `grep max-w-4xl` 6 hits single theme, build sans T09 PASS)
+
+### Evidence Capturée (extraits réels)
+```
+> npx tsc --noEmit
+TSC_EXIT:0
+
+> npm run lint
+> eslint
+LINT_EXIT:0
+
+> npm test (vitest run)
+ ✓ tests/normalize.test.ts (8 tests) 3ms
+ ✓ tests/difficulty.test.ts (27 tests) 11ms
+ ✓ tests/storage.test.ts (24 tests) 11ms
+ ✓ tests/share.test.ts (14 tests) 10ms
+ ✓ tests/catalog.test.ts (8 tests) 6ms
+ ✓ tests/validation.test.ts (7 tests) 54ms
+ ✓ tests/audio.test.ts (15 tests) 67ms
+ ✓ tests/quality-gate.test.ts (16 tests) 133ms
+ ✓ tests/responsive.test.ts (18 tests) 140ms
+ ✓ tests/faq.test.tsx (12 tests) 145ms
+ ✓ tests/rerollShare.test.tsx (4 tests) 92ms
+ ✓ tests/spotify.test.ts (16 tests) 56ms
+ ✓ tests/api-catalog.test.ts (11 tests) 215ms
+ ✓ tests/gameState.test.ts (28 tests) 2112ms
+ ✓ tests/gameComponents.test.tsx (33 tests) 4281ms
+Test Files 15 passed (15)
+     Tests 241 passed (241)
+Duration 5.52s
+TEST_EXIT:0
+
+> npm run build (after rm -rf .next clean, transient 500.html ENOENT fix)
+> next build
+ ✓ Compiled successfully in 3.6s
+   Linting and checking validity of types ...
+   Generating static pages (5/5)
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    25.6 kB         128 kB
+├ ○ /_not-found                            996 B         103 kB
+├ ƒ /api/catalog                           127 B         102 kB
+└ ○ /faq                                   161 B         106 kB
+BUILD_EXIT2:0
+
+> ls -lh docs/v2-styles-backlog.md
+-rw-r--r-- 1 Raphael 197608 8,4K août  28 10:54 docs/v2-styles-backlog.md
+
+> cat .env.example | grep ENABLE_V2
+ENABLE_V2_STYLES=false
+ENV_V2_FALSE:PASS
+
+> grep -rn "wide" app/ components/ lib/ (app/components/lib filtered)
+C:/Users/Raphael/Documents/CODE/Songspot-fr/components/game/GuessHistory.tsx:29:      tracking-widest
+C:/Users/Raphael/Documents/CODE/Songspot-fr/components/game/RevealCard.tsx:60:      tracking-widest
+C:/Users/Raphael/Documents/CODE/Songspot-fr/components/game/RevealCard.tsx:97:      tracking-widest
+C:/Users/Raphael/Documents/CODE/Songspot-fr/components/game/StageProgress.tsx:55:      tracking-widest
+GREP_ARCADE: (empty 0)
+GREP_ENABLE_V2_APP: (empty 0)
+
+> grep -rn "max-w-" app/ components/
+max-w-4xl 6 hits (layout, header, footer, page, loading, error) + max-w-2xl GameContainer etc
+grep max-w-6xl|3xl app/components → NO_WIDE_TIGHT_CODE:PASS
+
+> cat docs/v2-styles-backlog.md | grep -E "max-w-6xl|max-w-3xl|gradient|glow" | head
+max-w-6xl 1152px vs max-w-3xl 768px via classe sur <main> + data-layout
+gradient from-violet-600 via-fuchsia-500 to-cyan-400 + glow shadow-[0_0_30px_rgba(...)]
+```
+
+### Verifier Verdict
+- **APPROVE** — tous les critères T09 vérifiés avec preuves réelles (docs placeholder 8559 bytes scope V2 complete, env flag false documenté, grep wide/arcade vide hors tracking-widest faux positifs, max-w-4xl unique sans wide/tight, tsc 0 + lint 0 + build 3.6s 5 routes + vitest 241/241, T14 peut build sans T09 confirmé, V2 deferred non bloquant). Iron law respectée: feature `docs/v2-styles-backlog.md` seul, state + progress chore séparé, no code wide/tight, T14 non bloqué.
+
+### Learnings pour T14+
+- V2 deferred pattern: `docs/v2-styles-backlog.md` placeholder suffit pour débloquer T14 vertical slice gate; ne pas créer de code `wide/tight`/`arcade` derrière flag dans MVP — grep garde `wide|arcade` vide (tracking-widest faux positif Tailwind acceptable documenté).
+- `.env.example` `ENABLE_V2_STYLES=false` reste seule source flag MVP, jamais importé en runtime (0 hit `app/components/lib`), activation V2 future via `lib/constants.ts` + `app/globals.css` vars `data-style` + `data-layout`.
+- `max-w-4xl` unique ownership T07 confirmé (6 hits), `max-w-6xl`/`max-w-3xl` 0 hit `app/components`, garantit single theme MVP sans régression wide/tight.
+- Build transient ENOENT `rename .next/export/500.html -> server/pages/500.html` après `docs/` write → `rm -rf .next` clean fix, build 3.6s PASS; ne pas interpréter comme faute T09 (docs markdown n'affecte pas build Next).
+- T09 priority 14 vs T14 priority 15: T09 lowest eligible après T13, T14 deps `T01+T02+T05+T06+T08` uniquement donc T09 ne bloque pas T14 (déjà true), iteration 14 = T09 then T14 next.
+- Backlog V2 estimation 3h (M) décomposée V2-1 layout 1h + V2-2 arcade 1h + V2-3 QA 1h, à exécuter après MVP polish.
+
+### Next Task
+- T14 — Build, lint, typecheck, polish prod (eligible, priority 15, depends T01+T02+T05+T06+T08) — vertical slice gate final, vérifier build/start/lint/tsc + README + robots/sitemap — **ne pas bloquer, T09 V2 deferred done**
+---
