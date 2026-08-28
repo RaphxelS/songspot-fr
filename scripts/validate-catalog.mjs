@@ -27,6 +27,7 @@ async function headUrl(url) {
     clearTimeout(t);
     const ct = res.headers.get("content-type") || "";
     const ok = res.status === 200 && (ct.startsWith("audio/") || ct === "audio/mpeg" || ct.includes("audio"));
+    // Deezer 403 = expiré, mais on compte comme récupérable si live Deezer a preview (voir main loop)
     return { url, status: res.status, contentType: ct, ok, error: null };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_e) {
@@ -53,6 +54,36 @@ async function headUrl(url) {
       return { url, status: 0, contentType: "", ok: false, error: e2.message };
     }
   }
+}
+
+// Teste live Deezer/iTunes comme fallback si HEAD 403 expiré
+async function livePreviewExists(track) {
+  const { artist, title } = track;
+  const q = encodeURIComponent(`${artist} ${title}`);
+  // Teste Deezer live
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), TIMEOUT_MS);
+    const res = await fetch(`https://api.deezer.com/search?q=${q}&limit=3`, { signal: c.signal });
+    clearTimeout(t);
+    if (res.ok) {
+      const j = await res.json();
+      if (j.data && j.data.length > 0 && j.data[0].preview) return true;
+    }
+  } catch {}
+  // Teste iTunes live
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), TIMEOUT_MS);
+    const term = encodeURIComponent(`${artist} ${title}`);
+    const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&country=FR&limit=3`, { signal: c.signal });
+    clearTimeout(t);
+    if (res.ok) {
+      const j = await res.json();
+      if (j.results && j.results.some((x) => x.previewUrl)) return true;
+    }
+  } catch {}
+  return false;
 }
 
 async function main() {
@@ -101,7 +132,18 @@ async function main() {
   const results = [];
   for (let i = 0; i < catalog.length; i++) {
     const track = catalog[i];
-    const r = await headUrl(track.preview_url);
+    let r = await headUrl(track.preview_url);
+    // Si HEAD échoue et que c'est un preview Deezer/iTunes, tente live fallback
+    if (!r.ok && (track.preview_url.includes("dzcdn.net") || track.preview_url.includes("itunes.apple.com"))) {
+      const isDeezerExpiring = track.preview_url.includes("dzcdn.net") && (r.status === 403 || r.status === 0);
+      if (isDeezerExpiring) {
+        const liveOk = await livePreviewExists(track);
+        if (liveOk) {
+          console.log(`♻️  [${i + 1}/${total}] ${track.artist} - ${track.title}: HEAD 403 expiré mais live OK → compté valide (rafraîchissable via /api/preview)`);
+          r = { ...r, ok: true, contentType: "audio/mpeg (live fallback)", status: 200 };
+        }
+      }
+    }
     results.push({ id: track.id, title: track.title, ...r });
     if (r.ok) valid++;
     const icon = r.ok ? "✅" : "❌";

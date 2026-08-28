@@ -3,8 +3,7 @@
 import * as React from "react";
 import { DIFFICULTY_LABELS } from "@/lib/difficulty";
 
-const DIFFICULTES = ["Toutes", ...DIFFICULTY_LABELS] as const;
-
+const DIFFICULTES = [...DIFFICULTY_LABELS] as const;
 export type DifficultySelectorProps = {
   value: string;
   onChange: (val: string) => void;
@@ -27,5 +26,4 @@ export default function DifficultySelector({ value, onChange, id = "difficulte-s
     </div>
   );
 }
-
 export { DIFFICULTES };

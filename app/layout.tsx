@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import AppDifficultyProvider from "./DifficultyProvider";
 
@@ -30,11 +29,11 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-[#0a0a0a] text-zinc-50`}
       >
         <a
           href="#contenu-principal"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           Aller au contenu principal
         </a>
@@ -44,7 +43,7 @@ export default function RootLayout({
             <main
               id="contenu-principal"
               tabIndex={-1}
-              className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 focus:outline-none"
+              className="flex-1 w-full px-4 sm:px-6 focus:outline-none"
             >
               {children}
             </main>
@@ -54,7 +53,14 @@ export default function RootLayout({
               className="sr-only"
               id="annonces-stage"
             />
-            <Footer />
+            {/* Footer minimal */}
+            <footer className="w-full border-t border-zinc-800/50 py-4 text-center text-xs text-zinc-600">
+              <a href="/faq" className="hover:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded px-2 py-1">
+                FAQ
+              </a>
+              <span className="mx-2">·</span>
+              <span>Catalogue Top 50 France · Spotify</span>
+            </footer>
           </AppDifficultyProvider>
         </ErrorBoundary>
       </body>

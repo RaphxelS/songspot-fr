@@ -17,7 +17,7 @@ type MobileMenuProps = {
 export default function MobileMenu({
   isOpen,
   onClose,
-  difficulte = "Toutes",
+  difficulte = "Facile",
   epoque = "Toutes",
   onDifficulteChange,
   onEpoqueChange,
@@ -94,7 +94,7 @@ export default function MobileMenu({
           <div className="flex flex-col gap-3">
             <DifficultySelector value={difficulte} onChange={(v) => onDifficulteChange?.(v)} id="mobile-difficulte" label="Difficulté" />
             <select id="mobile-difficulte-select" value={difficulte} onChange={(e) => onDifficulteChange?.(e.target.value)} className="sr-only" aria-hidden="true" tabIndex={-1}>
-              {["Toutes", "Facile", "Moyen", "Difficile", "Expert", "Impossible"].map((d) => (
+              {["Facile", "Moyen", "Difficile", "Expert", "Impossible"].map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
@@ -104,7 +104,7 @@ export default function MobileMenu({
               Difficulté (liste)
             </label>
             <select id="mobile-difficulte-fallback" value={difficulte} onChange={(e) => onDifficulteChange?.(e.target.value)} className="rounded-md border border-zinc-200 bg-white px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 min-h-11" aria-label="Choisir la difficulté">
-              {["Toutes", "Facile", "Moyen", "Difficile", "Expert", "Impossible"].map((d) => (
+              {["Facile", "Moyen", "Difficile", "Expert", "Impossible"].map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>

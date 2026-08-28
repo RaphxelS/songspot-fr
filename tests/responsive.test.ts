@@ -102,18 +102,18 @@ describe("T11 — Responsive 640px de base — invariants", () => {
 
   it("layout.tsx main container has max-w-4xl w-full mx-auto sm:px-6 and no overflow", () => {
     const layout = readFile("app/layout.tsx");
-    // main element line
-    expect(layout).toMatch(/max-w-4xl/);
-    expect(layout).toMatch(/mx-auto/);
+    // main element line - now uses flex-1 w-full with GameContainer max-w-7xl for 3-col songspot (allow either 4xl or 7xl)
     expect(layout).toMatch(/w-full/);
-    expect(layout).toMatch(/sm:px-6/);
-    // header also uses max-w-4xl
-    const header = readFile("components/layout/Header.tsx");
-    expect(header).toMatch(/max-w-4xl/);
-    const footer = readFile("components/layout/Footer.tsx");
-    expect(footer).toMatch(/max-w-4xl/);
-    // no overflow-x-hidden hack needed, but ensure no fixed width > viewport like w-[600px]
     expect(layout).not.toMatch(/w-\[\d{3,}px\]/);
+    // header uses max-w-7xl for 3-col (or legacy max-w-4xl)
+    const header = readFile("components/layout/Header.tsx");
+    expect(header).toMatch(/max-w-(4xl|7xl)/);
+    const footer = readFile("components/layout/Footer.tsx");
+    expect(footer).toMatch(/max-w-(4xl|7xl)/);
+    // GameContainer or page should have max-w-7xl for 3-col
+    const gameContainer = readFile("components/game/GameContainer.tsx");
+    const page = readFile("app/page.tsx");
+    expect(gameContainer + page).toMatch(/max-w-7xl/);
   });
 
   it("MobileMenu is fixed inset-0 sm:hidden with max-w-[85vw] w-80 (fits 375px)", () => {
@@ -129,18 +129,17 @@ describe("T11 — Responsive 640px de base — invariants", () => {
   });
 
   it("no horizontal scroll at 375px: document scrollWidth <= viewport (conceptual guard)", () => {
-    // Conceptual guard: body and root elements use max-w-4xl + px-4 + w-full
+    // Conceptual guard: body and root elements use max-w-7xl + px-4 + w-full for 3-col
     // No element should have width > 100vw. We simulate by checking that rendered container
     // at 375px would have scrollWidth <= 375.
     // In jsdom, we mock viewport 375 and check computed container doesn't overflow.
     Object.defineProperty(window, "innerWidth", { value: 375, writable: true, configurable: true });
     Object.defineProperty(document.documentElement, "clientWidth", { value: 375, writable: true, configurable: true });
 
-    const layout = readFile("app/layout.tsx");
-    // ensure main uses mx-auto w-full max-w-4xl + px-4 (16px each side)
-    // w-full max-w-4xl at 375px => width = 375 - 32 = 343px content, well within 375
-    expect(layout).toMatch(/mx-auto w-full max-w-4xl/);
-    expect(layout).toMatch(/px-4/);
+    const gameContainer = readFile("components/game/GameContainer.tsx");
+    // ensure GameContainer uses max-w-7xl + px-4
+    expect(gameContainer).toMatch(/max-w-7xl/);
+    expect(gameContainer).toMatch(/px-4/);
 
     // Also verify no element uses min-w > viewport or fixed large width
     const offenders: string[] = [];
@@ -296,9 +295,16 @@ describe("T11 — Responsive 640px de base — invariants", () => {
 
   it("Header/MobileMenu selects have min-h-11 hit target", () => {
     const header = readFile("components/layout/Header.tsx");
-    // both selects must have min-h-11
+    // Header now minimal (logo + FAQ + hamburger) - at least 1 min-h-11 (hamburger)
+    // Difficulty moved to left sidebar GameContainer, so Header has 1, GameContainer has many
     const headerMinHCount = (header.match(/min-h-11/g) || []).length;
-    expect(headerMinHCount).toBeGreaterThanOrEqual(3); // 2 selects + hamburger
+    expect(headerMinHCount).toBeGreaterThanOrEqual(1); // hamburger
+    // GameContainer left sidebar has difficulty vertical list with min-h-11
+    const gameContainer = readFile("components/game/GameContainer.tsx");
+    const leftMinHCount = (gameContainer.match(/min-h-11/g) || []).length;
+    expect(leftMinHCount).toBeGreaterThanOrEqual(3); // left difficulty + skip + comment
+    // Combined Header + GameContainer should have at least 3
+    expect(headerMinHCount + leftMinHCount).toBeGreaterThanOrEqual(3);
     const mobile = readFile("components/layout/MobileMenu.tsx");
     const mobileMinHCount = (mobile.match(/min-h-11/g) || []).length;
     expect(mobileMinHCount).toBeGreaterThanOrEqual(4); // close btn + 2 selects + FAQ link + Retour

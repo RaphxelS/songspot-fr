@@ -24,9 +24,20 @@ describe("catalog.fr.json", () => {
     }
   });
 
-  it("tous les cover commencent par https://i.scdn.co/", () => {
+  it("tous les cover commencent par https://i.scdn.co/ ou https://placehold.co/ ou CDN validés", () => {
+    const allowedPrefixes = [
+      "https://i.scdn.co/",
+      "https://placehold.co/",
+      "https://is1-ssl.mzstatic.com/",
+      "https://is2-ssl.mzstatic.com/",
+      "https://is3-ssl.mzstatic.com/",
+      "https://is4-ssl.mzstatic.com/",
+      "https://is5-ssl.mzstatic.com/",
+      "https://cdn-images.dzcdn.net/",
+    ];
     for (const t of catalog as unknown as Track[]) {
-      expect(t.cover.startsWith("https://i.scdn.co/")).toBe(true);
+      const ok = allowedPrefixes.some((p) => t.cover.startsWith(p));
+      expect(ok, `cover invalide: ${t.cover}`).toBe(true);
     }
   });
 

@@ -25,13 +25,13 @@ describe("DifficultyContext — Provider + Header ↔ GameContainer sync", () =>
     try { window.localStorage.clear(); } catch {}
   });
 
-  it("provider default Toutes, setDifficulty persists via storage", async () => {
+  it("provider default Facile, setDifficulty persists via storage", async () => {
     render(
       <DifficultyProvider>
         <Consumer />
       </DifficultyProvider>
     );
-    expect(screen.getByTestId("diff").textContent).toBe("Toutes");
+    expect(screen.getByTestId("diff").textContent).toBe("Facile");
     fireEvent.click(screen.getByText("setFacile"));
     expect(screen.getByTestId("diff").textContent).toBe("Facile");
   });
@@ -47,16 +47,16 @@ describe("DifficultyContext — Provider + Header ↔ GameContainer sync", () =>
     expect(screen.getByTestId("era").textContent).toBe("2020s");
   });
 
-  it("DifficultySelector renders 6 buttons with aria-pressed", async () => {
+  it("DifficultySelector renders 5 buttons with aria-pressed", async () => {
     const onChange = () => {};
     render(<DifficultySelector value="Facile" onChange={onChange} />);
     const buttons = screen.getAllByRole("button");
-    // 6 buttons: Toutes + 5 tiers
-    expect(buttons.length).toBe(6);
+    // 5 buttons: 5 tiers (Toutes removed)
+    expect(buttons.length).toBe(5);
     const facile = screen.getByTestId("difficulty-Facile");
     expect(facile.getAttribute("aria-pressed")).toBe("true");
-    const toutes = screen.getByTestId("difficulty-Toutes");
-    expect(toutes.getAttribute("aria-pressed")).toBe("false");
+    const impossible = screen.getByTestId("difficulty-Impossible");
+    expect(impossible.getAttribute("aria-pressed")).toBe("false");
   });
 
   it("EraFilter renders 5 buttons with aria-pressed", async () => {
@@ -71,7 +71,7 @@ describe("DifficultyContext — Provider + Header ↔ GameContainer sync", () =>
   it("DifficultySelector onChange called with correct value", async () => {
     let val = "";
     const onChange = (v: string) => { val = v; };
-    render(<DifficultySelector value="Toutes" onChange={onChange} />);
+    render(<DifficultySelector value="Facile" onChange={onChange} />);
     fireEvent.click(screen.getByTestId("difficulty-Expert"));
     expect(val).toBe("Expert");
   });

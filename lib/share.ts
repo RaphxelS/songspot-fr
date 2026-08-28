@@ -12,7 +12,7 @@ import type { Track } from "./catalog";
 // Schémas Zod
 // ─────────────────────────────────────────────────────────────
 
-export const ShareDifficultySchema = z.enum([...DIFFICULTY_LABELS, "Toutes"] as [string, ...string[]]);
+export const ShareDifficultySchema = z.enum(DIFFICULTY_LABELS as unknown as [string, ...string[]]);
 
 export const ShareParamsSchema = z.object({
   track: z.string().min(1),
@@ -57,7 +57,7 @@ export function isValidTrackId(trackId: string, catalog: Track[]): boolean {
  */
 export function isValidDifficulty(difficulty: string): boolean {
   if (!difficulty) return false;
-  const allowed = [...DIFFICULTY_LABELS, "Toutes"] as string[];
+  const allowed = [...DIFFICULTY_LABELS] as string[];
   return allowed.includes(difficulty);
 }
 
@@ -186,10 +186,13 @@ export function parseShareUrl(
     };
   }
 
-  // Difficulty : valider allowlist, fallback à Toutes si invalide mais ne rend pas le défi invalide
+  // Difficulty : valider allowlist DIFFICULTY_LABELS, fallback Facile si Toutes ancien
   let validatedDifficulty: string | null = null;
   if (rawDifficulty) {
-    if (isValidDifficulty(rawDifficulty)) {
+    if (rawDifficulty === "Toutes") {
+      // legacy migration: Toutes removed → Facile
+      validatedDifficulty = "Facile";
+    } else if (isValidDifficulty(rawDifficulty)) {
       validatedDifficulty = rawDifficulty;
     } else {
       // Zod check for invalid difficulty — on garde track valide mais difficulty ignorée

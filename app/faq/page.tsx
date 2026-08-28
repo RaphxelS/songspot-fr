@@ -142,7 +142,7 @@ export default function FAQPage() {
           <p className="mt-3">
             Si un niveau ne contient aucun titre après application des filtres
             (catalogue déséquilibré), une carte « Aucun morceau disponible »
-            propose de repasser en « Toutes » les difficultés. Les seuils sont
+            propose de repasser en « Facile » ou une autre difficulté. Les seuils sont
             recalculés à chaque changement de filtre par époque.
           </p>
           <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">

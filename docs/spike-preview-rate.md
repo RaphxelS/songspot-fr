@@ -1,24 +1,22 @@
 # Spike preview_url — taux live Spotify (T02b)
 
-> Généré le 2026-08-27 par `scripts/check-preview-rate.mjs` — timeout 5000ms, seuil pivot 40%
+> Généré le 2026-08-28 par `scripts/check-preview-rate.mjs` — timeout 5000ms, seuil pivot 40%
 
 ## Résumé
 
-- **Total global**: 95
-- **Avec preview_url**: 95
-- **Hit rate global**: 100.0% (95/95)
+- **Total global**: 0
+- **Avec preview_url**: 0
+- **Hit rate global**: 0.0% (0/0)
 - **Seuil pivot**: 40% — si hit < 40% → fallback-only
-- **Décision**: ✅ **Filter-only MVP maintenu** — hit rate global 100.0% ≥ 40% : Spotify utilisable en complément, mais `data/catalog.fr.json` reste seule source de vérité jusqu'à T03 validé.
-
-> ℹ️ SPOTIFY creds missing, spike skipped — using fallback JSON. Mesure live non exécutée (pas de SPOTIFY_CLIENT_ID/SECRET). Fallback JSON seul source de vérité. Pour mesure réelle: `SPOTIFY_CLIENT_ID=xxx SPOTIFY_CLIENT_SECRET=yyy node scripts/check-preview-rate.mjs`.
+- **Décision**: ⚠️ **Pivot fallback-only** — hit rate global 0.0% < 40% : Spotify preview_url trop faible pour MVP filter-only. Source de vérité = `data/catalog.fr.json` (SoundHelix 100% — 95/95 HEAD 200). T03 bloqué jusqu'à décision produit (iTunes Search / Deezer primary envisagés).
 
 
 ## Détail par playlist
 
 | playlistId | total | withPreview | hit% |
 |---|---|---|---|
-| `37i9dQZEVXbIP3c3fqVrJY` | — | — | — |  
-| `37i9dQZEVXb5AvMoO2SKHg` | — | — | — |
+| `37i9dQZEVXbIP3c3fqVrJY` | ERR (403 playlist fetch failed 37i9dQZEVXbIP3c3fqVrJY: 403  {"err) | — | ERR% |
+| `37i9dQZEVXb5AvMoO2SKHg` | ERR (403 playlist fetch failed 37i9dQZEVXb5AvMoO2SKHg: 403  {"err) | — | ERR% |
 
 ## Méthode
 

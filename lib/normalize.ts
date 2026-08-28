@@ -14,6 +14,7 @@ const LIGATURE_MAP: Record<string, string> = {
 };
 
 const LIGATURE_RE = /[œŒæÆ]/g;
+const DASH_RE = /[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g;
 
 /**
  * Normalise une chaîne pour comparaison accent-insensitive.
@@ -24,8 +25,12 @@ const LIGATURE_RE = /[œŒæÆ]/g;
  */
 export function normalize(str: string): string {
   if (!str) return "";
-  // 1. Map ligatures
-  const mapped = str.replace(LIGATURE_RE, (m) => LIGATURE_MAP[m] ?? m);
+  // 1. Map ligatures + curly apostrophes + dash variants (—, –, etc. → -)
+  const mapped = str
+    .replace(LIGATURE_RE, (m) => LIGATURE_MAP[m] ?? m)
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(DASH_RE, "-");
   // 2. NFD decomposition + strip combining marks
   const nfd = mapped.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   // 3. Lowercase

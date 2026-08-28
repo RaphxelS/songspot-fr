@@ -49,14 +49,14 @@ export default function EmptyPoolCard({
           onClick={handleReset}
           data-testid="empty-pool-reset"
           className="mt-4 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-100"
-          aria-label="Réinitialiser les filtres à Toutes"
+          aria-label="Réinitialiser les filtres"
         >
           Afficher tous les morceaux
         </button>
       )}
       {!handleReset && (
         <p className="mt-4 text-xs text-zinc-500">
-          Sélectionnez « Toutes » pour la difficulté et l&apos;époque.
+          Sélectionnez une autre difficulté ou époque.
         </p>
       )}
     </div>

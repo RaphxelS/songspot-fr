@@ -11,11 +11,13 @@ import {
 
 export type UseAudioClipReturn = {
   play: (stageSeconds: number) => Promise<void>;
+  playFull: () => Promise<void>;
   pause: () => void;
   seek0: () => void;
   setVolume: (v: number) => void;
   isPlaying: boolean;
   currentTime: number;
+  duration: number;
   error: string | null;
   isIOS: boolean;
 };
@@ -40,6 +42,7 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isIOSState, setIsIOSState] = useState(false);
 
@@ -68,6 +71,11 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
     if (audio) {
       try {
         audio.pause();
+      } catch {
+        // ignore
+      }
+      try {
+        (audio as HTMLAudioElement & { loop?: boolean }).loop = false;
       } catch {
         // ignore
       }
@@ -126,9 +134,17 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
         // ignore
       }
     };
+    const onDuration = () => {
+      try {
+        const d = audio.duration;
+        if (Number.isFinite(d) && d > 0) setDuration(d);
+      } catch {}
+    };
     audio.addEventListener("error", onError);
     // timeupdate is too slow (250ms) for 0.1s, but keep for currentTime display fallback
     audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onDuration);
+    audio.addEventListener("durationchange", onDuration);
 
     // iOS detection + restore volume from storage
     try {
@@ -160,6 +176,8 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
       }
       audio.removeEventListener("error", onError);
       audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onDuration);
+      audio.removeEventListener("durationchange", onDuration);
       // remove potential canplay listeners left over if play() was pending
       if (canPlayListenersRef.current) {
         audio.removeEventListener("canplay", canPlayListenersRef.current.canplay);
@@ -206,6 +224,11 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
       // ignore
     }
     try {
+      (audio as HTMLAudioElement & { loop?: boolean }).loop = false;
+    } catch {
+      // ignore
+    }
+    try {
       audio.currentTime = 0;
     } catch {
       // ignore
@@ -236,6 +259,11 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
       // cancel previous timers before new play (double play guard)
       clearTimers();
       setError(null);
+      try {
+        (audio as HTMLAudioElement & { loop?: boolean }).loop = false;
+      } catch {
+        // ignore
+      }
 
       if (audio.src !== previewUrl) {
         audio.src = previewUrl;
@@ -292,6 +320,11 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
         // ignore
       }
       setCurrentTime(0);
+      try {
+        const d = audio.duration;
+        if (Number.isFinite(d) && d > 0) setDuration(d);
+        else setDuration(stageSeconds);
+      } catch { setDuration(stageSeconds); }
 
       try {
         await audio.play();
@@ -306,7 +339,7 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
 
       const timeoutMs = stageSeconds * 1000;
 
-      // primary timeout
+      // primary timeout — keep progress at 100% (stageSeconds) instead of snapping to 0
       timeoutRef.current = window.setTimeout(() => {
         const a = audioRef.current;
         if (a) {
@@ -315,24 +348,26 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
           } catch {
             // ignore
           }
+          // keep visual progress at end of clip; reset to 0 happens on next play()
           try {
-            a.currentTime = 0;
+            a.currentTime = stageSeconds;
           } catch {
             // ignore
           }
-          setCurrentTime(0);
+          setCurrentTime(stageSeconds);
         }
         clearTimers();
         setIsPlaying(false);
       }, timeoutMs) as unknown as number;
 
-      // rAF guard (fallback to setTimeout if rAF missing)
+      // rAF guard (fallback to setTimeout if rAF missing) — use elapsed for smooth progress even when audio.currentTime lags (short clips 0.1s)
       const startTime = Date.now();
       const rafGuard = () => {
         const a = audioRef.current;
         if (!a) return;
         const elapsed = Date.now() - startTime;
-        // check via currentTime or elapsed (currentTime may not advance in jsdom)
+        const elapsedSec = elapsed / 1000;
+        // check via currentTime or elapsed (currentTime may not advance in jsdom / short clips)
         let shouldStop = false;
         try {
           if (a.currentTime >= stageSeconds) shouldStop = true;
@@ -347,19 +382,22 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
             // ignore
           }
           try {
-            a.currentTime = 0;
+            a.currentTime = stageSeconds;
           } catch {
             // ignore
           }
-          setCurrentTime(0);
+          setCurrentTime(stageSeconds);
           clearTimers();
           setIsPlaying(false);
           return;
         }
+        // Smooth progress: use max of audio time and elapsed, so bar moves even if audio lags
         try {
-          setCurrentTime(a.currentTime);
+          const audioTime = a.currentTime;
+          const smooth = Math.max(audioTime, Math.min(elapsedSec, stageSeconds));
+          setCurrentTime(smooth);
         } catch {
-          // ignore
+          setCurrentTime(Math.min(elapsedSec, stageSeconds));
         }
         if (typeof window.requestAnimationFrame === "function") {
           rafRef.current = window.requestAnimationFrame(rafGuard);
@@ -380,8 +418,8 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
         try {
           if (a.currentTime >= stageSeconds) {
             a.pause();
-            a.currentTime = 0;
-            setCurrentTime(0);
+            a.currentTime = stageSeconds;
+            setCurrentTime(stageSeconds);
             clearTimers();
             setIsPlaying(false);
           }
@@ -393,7 +431,122 @@ export function useAudioClip(previewUrl: string | null): UseAudioClipReturn {
     [previewUrl, clearTimers]
   );
 
-  return { play, pause, seek0, setVolume, isPlaying, currentTime, error, isIOS: isIOSState };
+  const playFull = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!previewUrl) {
+      setError(AUDIO_ERRORS.previewUnavailable);
+      return;
+    }
+
+    clearTimers();
+    setError(null);
+
+    if (audio.src !== previewUrl) {
+      audio.src = previewUrl;
+    }
+
+    // enable looping for background playback until Nouveau morceau
+    try {
+      (audio as HTMLAudioElement & { loop?: boolean }).loop = true;
+    } catch {
+      // ignore
+    }
+
+    const waitCanPlay = () =>
+      new Promise<void>((resolve, reject) => {
+        if (audio.readyState >= 3) {
+          resolve();
+          return;
+        }
+        let timeoutId: number | null = null;
+        const onCanPlay = () => {
+          cleanup();
+          resolve();
+        };
+        const onErr = () => {
+          cleanup();
+          reject(new Error("load error"));
+        };
+        const cleanup = () => {
+          audio.removeEventListener("canplay", onCanPlay);
+          audio.removeEventListener("loadedmetadata", onCanPlay);
+          audio.removeEventListener("error", onErr);
+          if (timeoutId !== null) window.clearTimeout(timeoutId);
+          canPlayListenersRef.current = null;
+        };
+        audio.addEventListener("canplay", onCanPlay);
+        audio.addEventListener("loadedmetadata", onCanPlay);
+        audio.addEventListener("error", onErr);
+        canPlayListenersRef.current = {
+          canplay: onCanPlay,
+          loadedmetadata: onCanPlay,
+          error: onErr,
+        };
+        timeoutId = window.setTimeout(() => {
+          cleanup();
+          resolve();
+        }, 5000) as unknown as number;
+      });
+
+    try {
+      await waitCanPlay();
+    } catch {
+      setError(AUDIO_ERRORS.previewUnavailable);
+      return;
+    }
+
+    try {
+      audio.currentTime = 0;
+    } catch {
+      // ignore
+    }
+    setCurrentTime(0);
+    try {
+      const d = audio.duration;
+      if (Number.isFinite(d) && d > 0) setDuration(d);
+      else setDuration(30);
+    } catch { setDuration(30); }
+
+    try {
+      await audio.play();
+    } catch (e: unknown) {
+      setError(mapPlayError(e));
+      setIsPlaying(false);
+      return;
+    }
+
+    setIsPlaying(true);
+    setError(null);
+    // rAF loop for full preview so progress bar stays smooth (previously only timeupdate 250ms)
+    const fullRaf = () => {
+      const a = audioRef.current;
+      if (!a) return;
+      if (!a.loop && a.paused) return;
+      try {
+        const ct = a.currentTime;
+        if (Number.isFinite(ct)) setCurrentTime(ct);
+      } catch {}
+      if (typeof window.requestAnimationFrame === "function") {
+        rafRef.current = window.requestAnimationFrame(fullRaf);
+      } else {
+        rafRef.current = window.setTimeout(fullRaf, 32) as unknown as number;
+      }
+    };
+    if (typeof window.requestAnimationFrame === "function") {
+      rafRef.current = window.requestAnimationFrame(fullRaf);
+    } else {
+      rafRef.current = window.setTimeout(fullRaf, 32) as unknown as number;
+    }
+    // also keep interval for safety
+    intervalRef.current = window.setInterval(() => {
+      const a = audioRef.current;
+      if (!a) return;
+      try { setCurrentTime(a.currentTime); } catch {}
+    }, 50) as unknown as number;
+  }, [previewUrl, clearTimers]);
+
+  return { play, playFull, pause, seek0, setVolume, isPlaying, currentTime, duration, error, isIOS: isIOSState };
 }
 
 export default useAudioClip;

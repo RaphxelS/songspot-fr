@@ -9,30 +9,31 @@ import { STAGES, STORAGE_KEYS } from "@/lib/constants";
 export type AudioPlayerProps = {
   audio: UseAudioClipReturn;
   stageSeconds: number;
-  stageIndex: number;
-  enabledStages: boolean[];
-  onToggleStage: (sparseIndex: number) => void;
-  disabled?: boolean; // won/lost
+  disabled?: boolean;
+  // Backward compat for tests
+  stageIndex?: number;
+  enabledStages?: boolean[];
+  onToggleStage?: (sparseIndex: number) => void;
 };
 
 function formatStageFrench(seconds: number): string {
-  if (seconds < 1) return `${seconds.toString().replace(".", ",")} s`;
-  return `${seconds} s`;
+  if (seconds < 1) return `${seconds.toString().replace(".", ",")}s`;
+  return `${seconds}s`;
 }
 
 export default function AudioPlayer({
   audio,
   stageSeconds,
+  disabled = false,
   stageIndex,
   enabledStages,
   onToggleStage,
-  disabled = false,
 }: AudioPlayerProps) {
   const { isPlaying, currentTime, error, isIOS: isIOSState, play, pause, seek0, setVolume } = audio;
   const [volume, setVolumeState] = React.useState(0.8);
   const iosDisabled = isIOSState || isIOS();
+  const isOldMode = enabledStages !== undefined && onToggleStage !== undefined && stageIndex !== undefined;
 
-  // Restore volume from prefs on mount (already handled by hook, but keep UI sync)
   React.useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
@@ -42,10 +43,7 @@ export default function AudioPlayer({
           setVolumeState(Math.min(1, Math.max(0, parsed.volume)));
         }
       }
-    } catch {
-      // ignore
-    }
-    // also sync iOS detection already in hook
+    } catch {}
   }, []);
 
   const handlePlayPause = React.useCallback(() => {
@@ -53,14 +51,12 @@ export default function AudioPlayer({
     if (isPlaying) {
       pause();
     } else {
-      // play is user-initiated, stageSeconds from currentStageSeconds
       void play(stageSeconds);
     }
   }, [disabled, isPlaying, pause, play, stageSeconds]);
 
   const handleSeek0 = React.useCallback(() => {
     seek0();
-    // spec: "Depuis le début" currentTime=0 sans changer isPlaying — seek0 already does not toggle isPlaying
   }, [seek0]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,11 +65,51 @@ export default function AudioPlayer({
     setVolume(v);
   };
 
-  // No autoplay: ensure we don't call play in effect. Verified by code review: no useEffect with play.
+  // New dark UI mode (info-only, no StageProgress toggle) when old props not provided
+  if (!isOldMode) {
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handlePlayPause}
+            disabled={disabled}
+            aria-label={isPlaying ? "Pause" : "Lecture"}
+            aria-pressed={isPlaying}
+            className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-green-500 text-black shadow-lg shadow-green-500/20 hover:bg-green-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] disabled:cursor-not-allowed disabled:opacity-50 transition-colors min-h-11 min-w-11"
+          >
+            {isPlaying ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <rect x="7" y="5" width="4" height="14" rx="1" />
+                <rect x="13" y="5" width="4" height="14" rx="1" />
+              </svg>
+            ) : (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="ml-1">
+                <path d="M7 5.5v13l11-6.5z" />
+              </svg>
+            )}
+          </button>
+          <span className="text-sm font-bold text-green-500" aria-live="polite">
+            {formatStageFrench(stageSeconds)}
+          </span>
+        </div>
 
+        {error && (
+          <p role="alert" aria-live="assertive" className="text-xs font-medium text-red-400 text-center">
+            {error}
+          </p>
+        )}
+
+        <p className="sr-only" aria-live="polite">
+          {isPlaying ? `Lecture en cours` : "En pause"}
+        </p>
+      </div>
+    );
+  }
+
+  // Old mode for tests: includes StageProgress with toggle + volume + Depuis le début
   return (
     <div className="flex w-full flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      {/* Header: stage indicator */}
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100" aria-live="polite">
           Extrait : <span className="font-bold">{formatStageFrench(stageSeconds)}</span>
@@ -87,12 +123,10 @@ export default function AudioPlayer({
         )}
       </div>
 
-      {/* Current time debug (optional) */}
       <p className="sr-only" aria-live="polite">
         {isPlaying ? `Lecture en cours ${currentTime.toFixed(1)} s` : "En pause"}
       </p>
 
-      {/* Controls row */}
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -104,13 +138,11 @@ export default function AudioPlayer({
         >
           {isPlaying ? (
             <span className="flex items-center gap-2">
-              <span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-current" />
-              Pause
+              <span aria-hidden="true" className="inline-block h-3 w-3 rounded-sm bg-current" /> Pause
             </span>
           ) : (
             <span className="flex items-center gap-2">
-              <span aria-hidden="true" className="inline-block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
-              Lecture
+              <span aria-hidden="true" className="inline-block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" /> Lecture
             </span>
           )}
         </button>
@@ -125,7 +157,6 @@ export default function AudioPlayer({
           Depuis le début
         </button>
 
-        {/* Volume */}
         <div className="flex min-h-11 items-center gap-2">
           <label htmlFor="audio-volume" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             Volume
@@ -153,16 +184,14 @@ export default function AudioPlayer({
         {iosDisabled && <span className="sr-only">{IOS_VOLUME_TOOLTIP}</span>}
       </div>
 
-      {/* StageProgress 5 segments */}
       <StageProgress
-        enabledStages={enabledStages}
-        stageIndex={stageIndex}
+        enabledStages={enabledStages!}
+        stageIndex={stageIndex!}
         currentStageSeconds={stageSeconds}
-        onToggle={onToggleStage}
+        onToggle={onToggleStage!}
         disabled={disabled}
       />
 
-      {/* Hit targets note (sr-only for verification) */}
       <div className="sr-only">Tous les boutons ont une taille minimale de 44 pixels</div>
     </div>
   );

@@ -14,7 +14,7 @@ export const TrackSchema = z.object({
   popularity: z.number().int().min(0).max(100),
   release_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "release_date must be YYYY-MM-DD"),
   era: z.enum(["classic", "2000s", "2010s", "2020s"]),
-  source: z.literal("spotify"),
+  source: z.enum(["spotify", "itunes", "deezer"]),
 });
 
 export const CatalogSchema = z.array(TrackSchema).min(80);

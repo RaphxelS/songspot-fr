@@ -444,10 +444,15 @@ describe("T06 — playedIds filtré per-pool & corrupt JSON fallback mémoire", 
     const { result } = renderHook(() => useGameState(CATALOG_FILTER));
     await waitFor(() => expect(result.current.isHydrated).toBe(true));
 
-    // Initial Tous -> 5 tracks
-    expect(result.current.filteredPool.length).toBe(5);
+    // Initial Facile (défaut) -> 1 track (c3) car filtre difficulté actif après suppression Toutes
+    // On passe d'abord en difficulté Difficile pour inclure c5 (classic, pop 50)
+    await act(async () => {
+      result.current.setDifficulty("Difficile");
+    });
+    await waitFor(() => expect(result.current.filteredPool.length).toBe(1));
+    expect(result.current.filteredPool[0].id).toBe("c5");
 
-    // Passe à era classic (seulement c5)
+    // Passe à era classic (toujours c5)
     await act(async () => {
       result.current.setEra("classic");
     });

@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { normalize } from "@/lib/normalize";
@@ -48,6 +49,8 @@ export type UseGameStateReturn = {
   era: string;
   toast: string | null;
   challengeBanner: string | null;
+  toutesProgressIndex: number;
+  progressiveTier: string | null;
   showToast: (message: string, durationMs?: number) => void;
   forceTrack: (trackId: string, difficultyParam?: string | null) => boolean;
   clearChallenge: () => void;
@@ -78,9 +81,7 @@ function isCorrectGuess(guess: string, track: Track): boolean {
   const combinedDash2 = normalize(`${track.artist} - ${track.title}`);
   if (ng === combined1 || ng === combined2) return true;
   if (ng === combinedDash1 || ng === combinedDash2) return true;
-  // also support "title — artist" em dash, normalize will handle? check dash variants
-  // fallback: if guess contains both title and artist normalized substrings
-  // e.g., guess "Angèle" should match title; already handled. For robustness, not doing substring.
+  // Dash variants (—, –, etc.) are normalized to "-" via lib/normalize, so "title — artist" → "title - artist"
   return false;
 }
 
@@ -114,6 +115,10 @@ export function getCurrentStageSecondsForTest(
   return enabled[denseIndex] ?? enabled[enabled.length - 1] ?? STAGES[0];
 }
 
+export function getProgressiveTierForTest(progressIndex: number): string {
+  return DIFFICULTY_LABELS[progressIndex % DIFFICULTY_LABELS.length];
+}
+
 // ─────────────────────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────────────────────
@@ -132,11 +137,13 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
   const [attemptCount, setAttemptCount] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [difficulty, setDifficultyState] = useState<string>("Toutes");
+  const [difficulty, setDifficultyState] = useState<string>("Facile");
   const [era, setEraState] = useState<string>("Toutes");
   const [toast, setToast] = useState<string | null>(null);
   const [isEmptyPool, setIsEmptyPool] = useState(false);
   const [challengeBanner, setChallengeBanner] = useState<string | null>(null);
+  const [toutesProgressIndex, setToutesProgressIndexState] = useState(0);
+  const toutesProgressRef = useRef(0);
 
   // Derived: enabled seconds list
   const enabledStageSeconds = useMemo(
@@ -160,7 +167,6 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       const thresholds = getDifficultyThresholds(catalog);
       let pool = filterByEra(catalog, era as never);
       if (
-        difficulty !== "Toutes" &&
         (DIFFICULTY_LABELS as readonly string[]).includes(difficulty)
       ) {
         pool = filterByDifficulty(
@@ -174,6 +180,11 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       return [];
     }
   }, [catalog, difficulty, era]);
+
+  const progressiveTier = useMemo(() => {
+    // "Toutes" supprimée — plus de mode progressif
+    return null;
+  }, []);
 
   // Hydration: lecture localStorage uniquement en useEffect (évite hydration mismatch)
   useEffect(() => {
@@ -214,8 +225,12 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
         void t;
       }
       setEnabledStagesState(stages);
-      setDifficultyState(prefs.difficulty || "Toutes");
+      setDifficultyState(prefs.difficulty && prefs.difficulty !== "Toutes" ? prefs.difficulty : "Facile");
       setEraState(prefs.era || "Toutes");
+      const progIdx = typeof prefs.toutesProgressIndex === "number" ? prefs.toutesProgressIndex : 0;
+      const progClamped = Math.max(0, Math.floor(progIdx));
+      setToutesProgressIndexState(progClamped);
+      toutesProgressRef.current = progClamped;
     } catch {
       // ignore, fallback mémoire
     }
@@ -271,20 +286,15 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       return;
     }
 
+    // Mode progressif supprimé (Toutes retirée) — tirage direct
+    // Non-progressive path: difficulté spécifique => random dans le pool filtré
     // recompute pool synchronously (évite memo stale)
     let pool: Track[];
     try {
       const thresholds = getDifficultyThresholds(catalog);
       pool = filterByEra(catalog, era as never);
-      if (
-        difficulty !== "Toutes" &&
-        (DIFFICULTY_LABELS as readonly string[]).includes(difficulty)
-      ) {
-        pool = filterByDifficulty(
-          pool,
-          difficulty as DifficultyTier,
-          thresholds,
-        );
+      if ((DIFFICULTY_LABELS as readonly string[]).includes(difficulty)) {
+        pool = filterByDifficulty(pool, difficulty as DifficultyTier, thresholds);
       }
     } catch {
       pool = [];
@@ -294,9 +304,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       setIsEmptyPool(true);
       setTrack(null);
       setIsLoading(false);
-      setToast(
-        "Aucun morceau disponible pour ces filtres — essayez « Toutes »",
-      );
+      setToast("Aucun morceau disponible pour ces filtres — essayez une autre difficulté ou époque");
       return;
     }
 
@@ -304,9 +312,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     // Clear challenge banner on new random pick (reroll)
     setChallengeBanner(null);
     // Preserve guard toast ("Au moins un palier...") if present, otherwise clear
-    setToast((prev) =>
-      prev && prev.includes("Au moins un palier") ? prev : null,
-    );
+    setToast((prev) => (prev && prev.includes("Au moins un palier") ? prev : null));
 
     // Q-03 reuse helper filterPlayedIdsByPool (single source, per-pool filter)
     const poolIds = pool.map((t) => t.id);
@@ -418,12 +424,14 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
   }, []);
 
   const resetFilters = useCallback(() => {
-    setDifficultyState("Toutes");
+    setDifficultyState("Facile");
     setEraState("Toutes");
     setToast(null);
     setChallengeBanner(null);
+    toutesProgressRef.current = 0;
+    setToutesProgressIndexState(0);
     try {
-      setPrefs({ difficulty: "Toutes", era: "Toutes" });
+      setPrefs({ difficulty: "Facile", era: "Toutes", toutesProgressIndex: 0 });
     } catch {
       // ignore
     }
@@ -449,7 +457,7 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
       if (!catalog || catalog.length === 0) return false;
       const found = catalog.find((t) => t.id === trackId);
       if (!found) return false;
-      const allowedDiffs = [...DIFFICULTY_LABELS, "Toutes"] as string[];
+      const allowedDiffs = [...DIFFICULTY_LABELS] as string[];
       let diffToApply: string | null = null;
       if (difficultyParam && allowedDiffs.includes(difficultyParam)) {
         diffToApply = difficultyParam;
@@ -544,6 +552,8 @@ export function useGameState(catalog: Track[]): UseGameStateReturn {
     era,
     toast,
     challengeBanner,
+    toutesProgressIndex,
+    progressiveTier,
     showToast,
     forceTrack,
     clearChallenge,

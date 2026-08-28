@@ -64,7 +64,7 @@ describe("T13 gate — storage corrupt JSON \"{broken\" fallback", () => {
   it("prefs corrupt \"{broken\" → DEFAULT sans crash", () => {
     window.localStorage.setItem(STORAGE_KEYS.prefs, "{broken");
     expect(() => getPrefs()).not.toThrow();
-    expect(getPrefs().difficulty).toBe("Toutes");
+    expect(getPrefs().difficulty).toBe("Facile");
   });
 
   it("playedIds corrupt \"{broken\" → [] sans crash", () => {

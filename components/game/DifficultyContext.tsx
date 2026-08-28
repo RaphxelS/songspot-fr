@@ -11,21 +11,22 @@ export type DifficultyContextValue = {
 };
 
 const DifficultyContext = React.createContext<DifficultyContextValue>({
-  difficulty: "Toutes",
+  difficulty: "Facile",
   era: "Toutes",
   setDifficulty: () => {},
   setEra: () => {},
 });
 
 export function DifficultyProvider({ children }: { children: React.ReactNode }) {
-  const [difficulty, setDifficultyState] = React.useState<string>("Toutes");
+  const [difficulty, setDifficultyState] = React.useState<string>("Facile");
   const [era, setEraState] = React.useState<string>("Toutes");
 
   React.useEffect(() => {
     try {
       const prefs = getPrefs();
       if (typeof prefs.difficulty === "string" && prefs.difficulty.length > 0) {
-        setDifficultyState(prefs.difficulty);
+        const migrated = prefs.difficulty === "Toutes" ? "Facile" : prefs.difficulty;
+        setDifficultyState(migrated);
       }
       if (typeof prefs.era === "string" && prefs.era.length > 0) {
         setEraState(prefs.era);

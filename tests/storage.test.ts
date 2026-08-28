@@ -40,7 +40,7 @@ describe("lib/storage — prefs UNIFIÉ", () => {
 
   it("getPrefs retourne DEFAULT_PREFS quand vide", () => {
     const prefs = getPrefs();
-    expect(prefs.difficulty).toBe("Toutes");
+    expect(prefs.difficulty).toBe("Facile");
     expect(prefs.era).toBe("Toutes");
     expect(prefs.volume).toBe(0.8);
     expect(prefs.enabledStages).toEqual([true, true, true, true, true]);
@@ -220,7 +220,7 @@ describe("lib/storage — prefs UNIFIÉ", () => {
     window.localStorage.setItem(STORAGE_KEYS.playedIds, "{broken");
     expect(() => getPrefs()).not.toThrow();
     expect(() => getPlayedIds()).not.toThrow();
-    expect(getPrefs().difficulty).toBe("Toutes");
+    expect(getPrefs().difficulty).toBe("Facile");
     expect(getPlayedIds()).toEqual([]);
   });
 

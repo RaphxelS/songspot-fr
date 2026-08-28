@@ -41,6 +41,7 @@ const CATALOG_T08: Track[] = [
 function createMockAudio(overrides: Partial<UseAudioClipReturn> = {}): UseAudioClipReturn {
   return {
     play: vi.fn(async () => {}),
+    playFull: vi.fn(async () => {}),
     pause: vi.fn(() => {}),
     seek0: vi.fn(() => {}),
     setVolume: vi.fn(() => {}),

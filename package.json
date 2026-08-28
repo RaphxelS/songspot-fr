@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "test:ci": "vitest run --coverage",
     "validate:catalog": "node scripts/validate-catalog.mjs",
+    "enrich:catalog": "node scripts/enrich-catalog.mjs",
     "spike:preview-rate": "node scripts/check-preview-rate.mjs"
   },
   "dependencies": {

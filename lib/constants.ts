@@ -40,6 +40,11 @@ export const PLAYLIST_IDS: readonly string[] = [...DEFAULT_PLAYLIST_IDS];
 export const STORAGE_KEYS = {
   prefs: "songspot-fr:prefs",
   playedIds: "songspot-fr:playedIds",
+  likedPlayedIds: "songspot-fr:liked:playedIds",
+  gameMode: "songspot-fr:mode",
 } as const;
+
+export type GameMode = "top" | "liked";
+export const GAME_MODES: readonly GameMode[] = ["top", "liked"] as const;
 
 export type StorageKeys = typeof STORAGE_KEYS;

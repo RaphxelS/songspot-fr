@@ -13,6 +13,42 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "i.scdn.co",
       },
+      {
+        protocol: "https",
+        hostname: "cdn-images.dzcdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "is1-ssl.mzstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "is2-ssl.mzstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "is3-ssl.mzstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "is4-ssl.mzstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "is5-ssl.mzstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "audio-ssl.itunes.apple.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdnt-preview.dzcdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+      },
     ],
   },
 };
