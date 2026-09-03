@@ -11,6 +11,7 @@ import {
   filterLikedByArtist,
   filterLikedByGenre,
   formatGenreLabel,
+  resolveArtistImageUrl,
 } from "@/lib/likedCategories";
 import type { LikedTrackWithMeta } from "@/lib/likedMapper";
 import type { Track } from "@/lib/catalog";
@@ -62,6 +63,12 @@ describe("buildArtistCategories", () => {
     expect(cats).toHaveLength(2);
     expect(cats[0]).toMatchObject({ id: "bp", name: "BLACKPINK", likedCount: 3 });
     expect(cats[1]).toMatchObject({ id: "st", name: "Stromae", likedCount: 1 });
+  });
+
+  it("uses album cover from liked tracks as fallback image", () => {
+    const liked = [mkLiked("1", "bp", "BLACKPINK")];
+    const cats = buildArtistCategories(liked);
+    expect(cats[0].imageUrl).toBe("https://i.scdn.co/image/cover.jpg");
   });
 });
 
@@ -121,6 +128,21 @@ describe("dedupeTracksById", () => {
   });
 });
 
+describe("resolveArtistImageUrl", () => {
+  it("prefers album cover from tracks over profile image", () => {
+    const liked = [mkLiked("1", "bp", "BLACKPINK")];
+    expect(resolveArtistImageUrl("bp", liked, "https://i.scdn.co/image/profile.jpg")).toBe(
+      "https://i.scdn.co/image/cover.jpg",
+    );
+  });
+
+  it("falls back to profile image when no track cover", () => {
+    expect(
+      resolveArtistImageUrl("x", [], "https://i.scdn.co/image/profile.jpg"),
+    ).toBe("https://i.scdn.co/image/profile.jpg");
+  });
+});
+
 describe("buildRecommendationsParams", () => {
   it("uses comma-separated seed_tracks (max 4 with one genre seed)", async () => {
     const { buildRecommendationsParams } = await import("@/lib/likedFetch");
@@ -128,5 +150,17 @@ describe("buildRecommendationsParams", () => {
     expect(params.get("seed_genres")).toBe("k-pop");
     expect(params.get("seed_tracks")).toBe("a,b,c,d");
     expect(params.toString()).not.toMatch(/seed_tracks=.*&seed_tracks=/);
+  });
+});
+
+describe("pickSpotifyArtistImage", () => {
+  it("prefers medium-sized image when available", async () => {
+    const { pickSpotifyArtistImage } = await import("@/lib/likedFetch");
+    const url = pickSpotifyArtistImage([
+      { url: "https://i.scdn.co/image/large.jpg", height: 640 },
+      { url: "https://i.scdn.co/image/medium.jpg", height: 320 },
+      { url: "https://i.scdn.co/image/small.jpg", height: 160 },
+    ]);
+    expect(url).toBe("https://i.scdn.co/image/medium.jpg");
   });
 });

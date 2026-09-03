@@ -12,6 +12,29 @@ export type LikedTrackWithMeta = {
   meta: LikedTrackMeta;
 };
 
+export function normalizeImageUrl(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("http://")) return `https://${trimmed.slice(7)}`;
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  return undefined;
+}
+
+export function pickAlbumCoverUrl(images: unknown): string | undefined {
+  if (!Array.isArray(images) || images.length === 0) return undefined;
+  const urls = images
+    .map((img) => {
+      if (!img || typeof img !== "object") return undefined;
+      return normalizeImageUrl((img as Record<string, unknown>)["url"]);
+    })
+    .filter((u): u is string => typeof u === "string");
+  if (urls.length === 0) return undefined;
+  // Spotify lists largest first — smallest (last) is fine for avatars.
+  return urls[urls.length - 1];
+}
+
 export function normalizeReleaseDate(raw: string | null | undefined): string {
   if (!raw) return "2020-01-01";
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
@@ -84,13 +107,8 @@ export function mapSpotifyTrackWithMeta(raw: unknown): LikedTrackWithMeta | null
     albumName = album["name"] as string;
   }
 
-  let cover = "";
-  if (album && Array.isArray(album["images"]) && (album["images"] as unknown[]).length > 0) {
-    const imgs = album["images"] as Array<Record<string, unknown>>;
-    const first = imgs.find((img) => typeof img["url"] === "string");
-    if (first && typeof first["url"] === "string") cover = first["url"] as string;
-  }
-  if (!cover || !cover.startsWith("https://")) {
+  let cover = pickAlbumCoverUrl(album?.["images"]);
+  if (!cover) {
     return null;
   }
 

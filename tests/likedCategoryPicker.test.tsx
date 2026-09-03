@@ -151,6 +151,30 @@ describe("LikedCategoryPicker", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Spotify n'a pas pu suggérer");
   });
 
+  it("renders artist image when imageUrl is provided", () => {
+    render(
+      <LikedCategoryPicker
+        selection={{ scope: "artist", artistId: null, genre: null, enrich: false }}
+        onSelectionChange={onSelectionChange}
+        artists={[
+          { id: "bp", name: "BLACKPINK", likedCount: 3, imageUrl: "https://i.scdn.co/image/test.jpg" },
+        ]}
+        genres={genres}
+        totalLiked={4}
+        loading={false}
+        error={null}
+        poolSize={null}
+        likedInPool={null}
+        enrichedInPool={null}
+        enrichWarning={null}
+        poolLoading={false}
+      />,
+    );
+    const img = screen.getByRole("listitem").querySelector("img");
+    expect(img).toBeTruthy();
+    expect(img).toHaveAttribute("src", "https://i.scdn.co/image/test.jpg");
+  });
+
   it("hides artist grid after selection and shows change button", () => {
     render(
       <LikedCategoryPicker

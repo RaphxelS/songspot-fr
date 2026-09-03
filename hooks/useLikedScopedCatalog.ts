@@ -70,6 +70,10 @@ export function useLikedScopedCatalog(
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || "Non authentifié");
       }
+      if (res.status === 429) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error || "Spotify limite les requêtes — réessayez dans une minute.");
+      }
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || `Erreur ${res.status}`);

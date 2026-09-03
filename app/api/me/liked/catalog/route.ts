@@ -16,6 +16,7 @@ import {
   fetchGenreRecommendations,
   searchArtistTracks,
 } from "@/lib/likedFetch";
+import { SpotifyRateLimitError } from "@/lib/likedLibraryCache";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ error: "Scope non supporté" }, { status: 400 });
   } catch (e) {
+    if (e instanceof SpotifyRateLimitError) {
+      return NextResponse.json(
+        { error: "Spotify limite les requêtes — patientez une minute puis réessayez." },
+        { status: 429 },
+      );
+    }
     console.warn("[liked/catalog] error", e);
     return NextResponse.json({ error: "Erreur lors du chargement du catalogue" }, { status: 502 });
   }

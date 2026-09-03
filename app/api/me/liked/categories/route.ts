@@ -6,11 +6,13 @@ import {
   buildArtistCategories,
   buildGenreCategories,
   profilesToGenresMap,
+  resolveArtistImageUrl,
 } from "@/lib/likedCategories";
 import {
   fetchAllLikedTracksWithMeta,
   fetchArtistProfilesMap,
 } from "@/lib/likedFetch";
+import { SpotifyRateLimitError } from "@/lib/likedLibraryCache";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,11 @@ export async function GET() {
 
     const artists = buildArtistCategories(tracks).map((artist) => ({
       ...artist,
-      imageUrl: artistProfiles.get(artist.id)?.imageUrl,
+      imageUrl: resolveArtistImageUrl(
+        artist.id,
+        tracks,
+        artistProfiles.get(artist.id)?.imageUrl,
+      ),
     }));
     const genres = buildGenreCategories(tracks, artistGenresMap);
 
@@ -36,11 +42,17 @@ export async function GET() {
       { artists, genres, totalLiked: total },
       {
         headers: {
-          "Cache-Control": "private, max-age=300, must-revalidate",
+          "Cache-Control": "private, no-cache, must-revalidate",
         },
       },
     );
   } catch (e) {
+    if (e instanceof SpotifyRateLimitError) {
+      return NextResponse.json(
+        { error: "Spotify limite les requêtes — patientez une minute puis réessayez." },
+        { status: 429 },
+      );
+    }
     console.warn("[liked/categories] error", e);
     return NextResponse.json({ error: "Erreur lors du chargement des catégories" }, { status: 502 });
   }

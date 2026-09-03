@@ -20,23 +20,19 @@ function makeTrack(id: string): Track {
   };
 }
 
-// Mock /api/me/liked to return `count` tracks across pages of 50, newest-first order.
-function mockLikedApi(count: number, withTotal = true) {
-  const all = Array.from({ length: count }, (_, i) => makeTrack(`s${i + 1}`));
+function mockCatalogAllApi(count: number, tracks?: Track[]) {
+  const all = tracks ?? Array.from({ length: count }, (_, i) => makeTrack(`s${i + 1}`));
   globalThis.fetch = vi.fn(async (input: unknown) => {
     const url = String(input);
-    const m = url.match(/offset=(\d+)/);
-    const offset = m ? Number(m[1]) : 0;
-    const page = all.slice(offset, offset + 50);
+    expect(url).toContain("/api/me/liked/catalog?scope=all");
     return {
       status: 200,
       ok: true,
       json: async () => ({
-        tracks: page,
-        total: withTotal ? count : null,
-        limit: 50,
-        offset,
-        playableCount: page.length,
+        tracks: all,
+        likedCount: count,
+        enrichedCount: 0,
+        enrichWarning: null,
       }),
     } as Response;
   }) as unknown as typeof fetch;
@@ -51,8 +47,8 @@ describe("useLikedCatalog — load ALL liked songs", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("fetchAll() loads every page up to total (no 100 cap)", async () => {
-    mockLikedApi(123); // > 2 pages, well above the old 100 cap
+  it("fetchAll() loads the full catalog in one request", async () => {
+    mockCatalogAllApi(123);
     const { result } = renderHook(() => useLikedCatalog(false));
 
     await act(async () => {
@@ -61,27 +57,13 @@ describe("useLikedCatalog — load ALL liked songs", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.tracks).not.toBeNull();
-    expect(result.current.tracks!.length).toBe(123); // all tracks, not just 100
+    expect(result.current.tracks!.length).toBe(123);
     expect(result.current.total).toBe(123);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("stops paginating when all.length >= total (avoids one extra request)", async () => {
-    let calls = 0;
-    const count = 120; // 3 pages of 50
-    const all = Array.from({ length: count }, (_, i) => makeTrack(`s${i + 1}`));
-    globalThis.fetch = vi.fn(async (input: unknown) => {
-      calls++;
-      const url = String(input);
-      const m = url.match(/offset=(\d+)/);
-      const offset = m ? Number(m[1]) : 0;
-      const page = all.slice(offset, offset + 50);
-      return {
-        status: 200,
-        ok: true,
-        json: async () => ({ tracks: page, total: count, limit: 50, offset, playableCount: page.length }),
-      } as Response;
-    }) as unknown as typeof fetch;
-
+  it("makes exactly one API call (no paginated liked fetch)", async () => {
+    mockCatalogAllApi(120);
     const { result } = renderHook(() => useLikedCatalog(false));
     await act(async () => {
       await result.current.fetchAll();
@@ -89,39 +71,53 @@ describe("useLikedCatalog — load ALL liked songs", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.tracks!.length).toBe(120);
-    // 120 => offsets 0,50,100 => exactly 3 calls (page at 100 returns 20 items, total reached)
-    expect(calls).toBe(3);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("auto-fetches all when enabled and no data yet", async () => {
-    mockLikedApi(75);
+    mockCatalogAllApi(75);
     const { result } = renderHook(() => useLikedCatalog(true));
 
     await waitFor(() => expect(result.current.tracks?.length).toBe(75));
-    expect(globalThis.fetch).toHaveBeenCalled();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("does NOT auto-fetch when not enabled", async () => {
     const spy = vi.fn(async () => ({
       status: 200,
       ok: true,
-      json: async () => ({ tracks: [], total: 0, limit: 50, offset: 0, playableCount: 0 }),
+      json: async () => ({ tracks: [], likedCount: 0, enrichedCount: 0, enrichWarning: null }),
     })) as unknown as typeof fetch;
     globalThis.fetch = spy;
     renderHook(() => useLikedCatalog(false));
-    // give effects time
     await new Promise((r) => setTimeout(r, 50));
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it("surfaces Spotify 429 rate-limit errors", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      status: 429,
+      ok: false,
+      json: async () => ({ error: "Spotify limite les requêtes — patientez une minute puis réessayez." }),
+    })) as unknown as typeof fetch;
+
+    const { result } = renderHook(() => useLikedCatalog(false));
+    await act(async () => {
+      await result.current.fetchAll();
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toMatch(/limite les requêtes/i);
+  });
 });
 
-describe("useLikedCatalog — shuffle fairness", () => {
+describe("useLikedCatalog — catalog payload", () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
   });
 
-  it("shuffles so the newest-first Spotify order is broken", async () => {
-    mockLikedApi(200);
+  it("returns tracks from the scoped catalog all endpoint as-is", async () => {
+    const shuffled = [makeTrack("s50"), makeTrack("s3"), makeTrack("s99")];
+    mockCatalogAllApi(3, shuffled);
     const { result } = renderHook(() => useLikedCatalog(false));
 
     await act(async () => {
@@ -129,33 +125,6 @@ describe("useLikedCatalog — shuffle fairness", () => {
     });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const ids = result.current.tracks!.map((t) => t.id);
-    expect(ids.length).toBe(200);
-    expect(new Set(ids).size).toBe(200); // no duplicates, all present
-
-    // The raw Spotify order is s1, s2, ..., s200 (newest-first). After a proper
-    // Fisher-Yates shuffle it is extremely unlikely to remain in that exact order.
-    const isSorted = ids.every((id, i) => id === `s${i + 1}`);
-    expect(isSorted).toBe(false);
-  });
-
-  it("older ids appear across the list (no early-only-new bias)", async () => {
-    mockLikedApi(150);
-    const { result } = renderHook(() => useLikedCatalog(false));
-
-    await act(async () => {
-      await result.current.fetchAll();
-    });
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    const ids = result.current.tracks!.map((t) => Number(t.id.replace("s", "")));
-    const firstHalf = ids.slice(0, 75);
-    const lastHalf = ids.slice(75);
-    // A purely newest-first (unshuffled) list would put all high ids first.
-    // After shuffle, low (older) ids must appear in BOTH halves.
-    const oldestInFirst = Math.min(...firstHalf);
-    const oldestInLast = Math.min(...lastHalf);
-    expect(oldestInFirst).toBeLessThan(150); // some older id in first half
-    expect(oldestInLast).toBeLessThan(150); // some older id in last half too
+    expect(result.current.tracks!.map((t) => t.id)).toEqual(["s50", "s3", "s99"]);
   });
 });

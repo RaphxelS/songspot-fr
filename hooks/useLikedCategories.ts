@@ -36,6 +36,10 @@ export function useLikedCategories(enabled: boolean): LikedCategoriesState {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || "Non authentifié");
       }
+      if (res.status === 429) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error || "Spotify limite les requêtes — réessayez dans une minute.");
+      }
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || `Erreur ${res.status}`);
@@ -65,7 +69,8 @@ export function useLikedCategories(enabled: boolean): LikedCategoriesState {
   }, []);
 
   React.useEffect(() => {
-    if (enabled && !fetchedRef.current && !loading && !error) {
+    if (!enabled) return;
+    if (!fetchedRef.current && !loading && !error) {
       void refetch();
     }
   }, [enabled, loading, error, refetch]);

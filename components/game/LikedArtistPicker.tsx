@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import type { LikedArtistCategory } from "@/lib/likedCategories";
 import type { LikedScopeSelection } from "@/lib/constants";
 
@@ -16,31 +15,57 @@ type Props = {
   poolLoading: boolean;
 };
 
-function ArtistAvatar({ name, imageUrl }: { name: string; imageUrl?: string }) {
-  const initials = name
+function artistInitials(name: string): string {
+  return name
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w.charAt(0))
     .join("")
     .toUpperCase();
+}
 
-  if (imageUrl) {
-    return (
-      <Image
-        src={imageUrl}
-        alt=""
-        width={96}
-        height={96}
-        className="w-full h-full object-cover"
-        unoptimized
-      />
-    );
-  }
+function ArtistAvatar({
+  name,
+  imageUrl,
+  size,
+}: {
+  name: string;
+  imageUrl?: string;
+  size: number;
+}) {
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
+
+  const initials = artistInitials(name);
+  const boxStyle = { width: size, height: size, minWidth: size, minHeight: size };
 
   return (
-    <span className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-300 text-lg font-semibold">
-      {initials || "?"}
-    </span>
+    <div
+      className="relative shrink-0 overflow-hidden rounded-full border border-zinc-700 bg-zinc-800"
+      style={boxStyle}
+      aria-hidden="true"
+    >
+      <div
+        className="absolute inset-0 flex items-center justify-center font-semibold text-zinc-300"
+        style={{ fontSize: Math.max(12, Math.round(size * 0.32)) }}
+      >
+        {initials || "?"}
+      </div>
+      {imageUrl && !imgError ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt=""
+          width={size}
+          height={size}
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -61,14 +86,13 @@ export default function LikedArtistPicker({
   }, [artists, search]);
 
   const selectedArtist = artists.find((a) => a.id === selection.artistId) ?? null;
+  const withImages = artists.filter((a) => a.imageUrl).length;
 
   if (selectedArtist) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-3">
-          <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border border-zinc-700">
-            <ArtistAvatar name={selectedArtist.name} imageUrl={selectedArtist.imageUrl} />
-          </div>
+          <ArtistAvatar name={selectedArtist.name} imageUrl={selectedArtist.imageUrl} size={56} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-zinc-100 truncate">{selectedArtist.name}</p>
             <p className="text-xs text-zinc-400">{selectedArtist.likedCount} titres aimés</p>
@@ -112,6 +136,12 @@ export default function LikedArtistPicker({
     <div className="space-y-3">
       <p className="text-sm text-zinc-300">Choisissez un artiste parmi vos titres aimés</p>
 
+      {!loading && artists.length > 0 && withImages === 0 && (
+        <p role="status" className="text-xs text-amber-400">
+          Aucune pochette trouvée — affichage des initiales. Rechargez la page ou réessayez.
+        </p>
+      )}
+
       <input
         type="search"
         value={search}
@@ -140,11 +170,9 @@ export default function LikedArtistPicker({
               onClick={() =>
                 onSelectionChange({ ...selection, artistId: artist.id, enrich: selection.enrich })
               }
-              className="group rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 flex flex-col items-center gap-2 text-center transition-colors hover:border-green-500/50 hover:bg-zinc-900 min-h-36"
+              className="group rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 flex flex-col items-center gap-2 text-center transition-colors hover:border-green-500/50 hover:bg-zinc-900"
             >
-              <div className="relative w-20 h-20 rounded-full overflow-hidden border border-zinc-700 group-hover:border-green-500/40 transition-colors">
-                <ArtistAvatar name={artist.name} imageUrl={artist.imageUrl} />
-              </div>
+              <ArtistAvatar name={artist.name} imageUrl={artist.imageUrl} size={80} />
               <span className="text-sm font-medium text-zinc-100 truncate w-full">{artist.name}</span>
               <span className="text-xs text-zinc-500">{artist.likedCount} aimés</span>
             </button>

@@ -49,21 +49,42 @@ export function buildArtistCategories(
 ): LikedArtistCategory[] {
   const byId = new Map<string, LikedArtistCategory>();
 
-  for (const { meta } of likedTracks) {
+  for (const { track, meta } of likedTracks) {
     if (!meta.primaryArtistId) continue;
     const existing = byId.get(meta.primaryArtistId);
     if (existing) {
       existing.likedCount += 1;
+      if (!existing.imageUrl && track.cover) existing.imageUrl = track.cover;
     } else {
       byId.set(meta.primaryArtistId, {
         id: meta.primaryArtistId,
         name: meta.primaryArtistName,
         likedCount: 1,
+        imageUrl: track.cover || undefined,
       });
     }
   }
 
   return [...byId.values()].sort((a, b) => b.likedCount - a.likedCount || a.name.localeCompare(b.name));
+}
+
+/** First album cover from liked tracks for an artist (same URLs used in-game). */
+export function findArtistCoverFromTracks(
+  likedTracks: LikedTrackWithMeta[],
+  artistId: string,
+): string | undefined {
+  for (const { track, meta } of likedTracks) {
+    if (meta.primaryArtistId === artistId && track.cover) return track.cover;
+  }
+  return undefined;
+}
+
+export function resolveArtistImageUrl(
+  artistId: string,
+  likedTracks: LikedTrackWithMeta[],
+  profileImageUrl?: string,
+): string | undefined {
+  return findArtistCoverFromTracks(likedTracks, artistId) ?? profileImageUrl;
 }
 
 export function buildGenreCategories(

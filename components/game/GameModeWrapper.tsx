@@ -65,7 +65,11 @@ export default function GameModeWrapper({ catalog }: Props) {
   const fetchAllLiked =
     mode === "liked" && auth.authenticated && likedSelection.scope === "all";
   const liked = useLikedCatalog(fetchAllLiked);
-  const categories = useLikedCategories(mode === "liked" && auth.authenticated);
+  const needsCategories =
+    mode === "liked" &&
+    auth.authenticated &&
+    likedSelection.scope !== "all";
+  const categories = useLikedCategories(needsCategories);
   const scopedCatalog = useLikedScopedCatalog(
     mode === "liked" && auth.authenticated,
     likedSelection,

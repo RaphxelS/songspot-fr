@@ -1,71 +1,31 @@
 import "server-only";
 
-import {
-  mapSpotifyTrackWithMeta,
-  type LikedTrackWithMeta,
-} from "@/lib/likedMapper";
 import type { Track } from "@/lib/catalog";
+import { mapSpotifyTrackWithMeta } from "@/lib/likedMapper";
 import type { ArtistGenresMap, ArtistProfilesMap } from "@/lib/likedCategories";
+import { getAccessToken } from "@/lib/spotify";
+import {
+  fetchAllLikedTracksWithMeta,
+  fetchWithSpotifyToken,
+} from "@/lib/likedLibraryCache";
 
-const FETCH_TIMEOUT_MS = 8000;
+export { fetchAllLikedTracksWithMeta, fetchWithSpotifyToken, SpotifyRateLimitError } from "@/lib/likedLibraryCache";
+
 const SPOTIFY_API = "https://api.spotify.com/v1";
-const HARD_CEILING = 10000;
 
-export async function fetchWithSpotifyToken(url: string, token: string): Promise<Response> {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-    clearTimeout(t);
-    return res;
-  } catch (e) {
-    clearTimeout(t);
-    throw e;
-  }
-}
-
-export async function fetchAllLikedTracksWithMeta(token: string): Promise<{
-  tracks: LikedTrackWithMeta[];
-  total: number;
-}> {
-  const all: LikedTrackWithMeta[] = [];
-  let offset = 0;
-  const pageSize = 50;
-  let totalVal = 0;
-
-  while (true) {
-    const url = `${SPOTIFY_API}/me/tracks?limit=${pageSize}&offset=${offset}&market=FR`;
-    const res = await fetchWithSpotifyToken(url, token);
-
-    if (!res.ok) {
-      throw new Error(`Spotify liked fetch failed: ${res.status}`);
-    }
-
-    const data = (await res.json()) as Record<string, unknown>;
-    if (offset === 0 && typeof data["total"] === "number") {
-      totalVal = data["total"] as number;
-    }
-
-    const items = Array.isArray(data["items"]) ? (data["items"] as unknown[]) : [];
-    if (items.length === 0) break;
-
-    for (const item of items) {
-      const it = item as Record<string, unknown> | null;
-      const raw = (it?.["track"] as unknown) ?? null;
-      if (!raw || typeof raw !== "object") continue;
-      const mapped = mapSpotifyTrackWithMeta(raw);
-      if (mapped) all.push(mapped);
-    }
-
-    offset += pageSize;
-    if (totalVal > 0 && all.length >= totalVal) break;
-    if (offset > HARD_CEILING) break;
-  }
-
-  return { tracks: all, total: totalVal || all.length };
+/** Pick a medium-sized Spotify image URL from the images array (descending size). */
+export function pickSpotifyArtistImage(images: unknown): string | undefined {
+  if (!Array.isArray(images) || images.length === 0) return undefined;
+  const urls = images
+    .map((img) => {
+      if (!img || typeof img !== "object") return null;
+      const url = (img as Record<string, unknown>)["url"];
+      return typeof url === "string" && url.startsWith("https://") ? url : null;
+    })
+    .filter((u): u is string => u !== null);
+  if (urls.length === 0) return undefined;
+  // Spotify returns largest first — prefer medium (index 1) for avatars.
+  return urls[1] ?? urls[0];
 }
 
 export async function fetchArtistProfilesMap(
@@ -74,12 +34,24 @@ export async function fetchArtistProfilesMap(
 ): Promise<ArtistProfilesMap> {
   const map: ArtistProfilesMap = new Map();
   const unique = [...new Set(artistIds.filter((id) => id.length > 0))];
+  if (unique.length === 0) return map;
+
+  const appToken = await getAccessToken();
+  const tokens = appToken && appToken !== token ? [appToken, token] : [token];
 
   for (let i = 0; i < unique.length; i += 50) {
     const batch = unique.slice(i, i + 50);
     const url = `${SPOTIFY_API}/artists?ids=${batch.join(",")}`;
-    const res = await fetchWithSpotifyToken(url, token);
-    if (!res.ok) continue;
+    let res: Response | null = null;
+    for (const apiToken of tokens) {
+      const attempt = await fetchWithSpotifyToken(url, apiToken);
+      if (attempt.ok) {
+        res = attempt;
+        break;
+      }
+      console.warn(`[liked] artist profiles fetch failed: ${attempt.status}`);
+    }
+    if (!res?.ok) continue;
 
     const data = (await res.json()) as Record<string, unknown>;
     const artists = Array.isArray(data["artists"]) ? (data["artists"] as unknown[]) : [];
@@ -90,12 +62,7 @@ export async function fetchArtistProfilesMap(
       const genres = Array.isArray(a["genres"])
         ? (a["genres"] as unknown[]).filter((g): g is string => typeof g === "string")
         : [];
-      let imageUrl: string | undefined;
-      if (Array.isArray(a["images"]) && (a["images"] as unknown[]).length > 0) {
-        const imgs = a["images"] as Array<Record<string, unknown>>;
-        const first = imgs.find((img) => typeof img["url"] === "string");
-        if (first && typeof first["url"] === "string") imageUrl = first["url"] as string;
-      }
+      const imageUrl = pickSpotifyArtistImage(a["images"]);
       if (id) map.set(id, { genres, imageUrl });
     }
   }

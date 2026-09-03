@@ -157,6 +157,12 @@ export default function LikedCategoryPicker({
         </div>
       )}
 
+      {selection.scope === "all" && !loading && (
+        <p className="text-xs text-zinc-500">
+          Astuce : cliquez sur <strong className="text-zinc-400">Par artiste</strong> pour choisir un artiste avec sa pochette.
+        </p>
+      )}
+
       {selection.scope !== "all" && !error && (
         <>
           {selection.scope === "artist" ? (
