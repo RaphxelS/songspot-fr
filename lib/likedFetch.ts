@@ -5,7 +5,7 @@ import {
   type LikedTrackWithMeta,
 } from "@/lib/likedMapper";
 import type { Track } from "@/lib/catalog";
-import type { ArtistGenresMap } from "@/lib/likedCategories";
+import type { ArtistGenresMap, ArtistProfilesMap } from "@/lib/likedCategories";
 
 const FETCH_TIMEOUT_MS = 8000;
 const SPOTIFY_API = "https://api.spotify.com/v1";
@@ -68,11 +68,11 @@ export async function fetchAllLikedTracksWithMeta(token: string): Promise<{
   return { tracks: all, total: totalVal || all.length };
 }
 
-export async function fetchArtistGenresMap(
+export async function fetchArtistProfilesMap(
   token: string,
   artistIds: string[],
-): Promise<ArtistGenresMap> {
-  const map: ArtistGenresMap = new Map();
+): Promise<ArtistProfilesMap> {
+  const map: ArtistProfilesMap = new Map();
   const unique = [...new Set(artistIds.filter((id) => id.length > 0))];
 
   for (let i = 0; i < unique.length; i += 50) {
@@ -90,10 +90,28 @@ export async function fetchArtistGenresMap(
       const genres = Array.isArray(a["genres"])
         ? (a["genres"] as unknown[]).filter((g): g is string => typeof g === "string")
         : [];
-      if (id) map.set(id, genres);
+      let imageUrl: string | undefined;
+      if (Array.isArray(a["images"]) && (a["images"] as unknown[]).length > 0) {
+        const imgs = a["images"] as Array<Record<string, unknown>>;
+        const first = imgs.find((img) => typeof img["url"] === "string");
+        if (first && typeof first["url"] === "string") imageUrl = first["url"] as string;
+      }
+      if (id) map.set(id, { genres, imageUrl });
     }
   }
 
+  return map;
+}
+
+export async function fetchArtistGenresMap(
+  token: string,
+  artistIds: string[],
+): Promise<ArtistGenresMap> {
+  const profiles = await fetchArtistProfilesMap(token, artistIds);
+  const map: ArtistGenresMap = new Map();
+  for (const [id, profile] of profiles) {
+    map.set(id, profile.genres);
+  }
   return map;
 }
 

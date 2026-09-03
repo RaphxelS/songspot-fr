@@ -9,6 +9,7 @@ import {
 } from "@/lib/constants";
 import { formatGenreLabel } from "@/lib/likedCategories";
 import type { LikedArtistCategory, LikedGenreCategory } from "@/lib/likedCategories";
+import LikedArtistPicker from "@/components/game/LikedArtistPicker";
 
 export type LikedCategoryPickerProps = {
   selection: LikedScopeSelection;
@@ -78,12 +79,6 @@ export default function LikedCategoryPicker({
 }: LikedCategoryPickerProps) {
   const [search, setSearch] = React.useState("");
 
-  const filteredArtists = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return artists;
-    return artists.filter((a) => a.name.toLowerCase().includes(q));
-  }, [artists, search]);
-
   const filteredGenres = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return genres;
@@ -100,8 +95,8 @@ export default function LikedCategoryPicker({
     });
   };
 
-  const selectedArtist = artists.find((a) => a.id === selection.artistId) ?? null;
   const selectedGenre = genres.find((g) => g.name === selection.genre) ?? null;
+  const artistLocked = selection.scope === "artist" && selection.artistId !== null;
 
   const poolHint = React.useMemo(() => {
     if (selection.scope === "all") {
@@ -119,26 +114,30 @@ export default function LikedCategoryPicker({
 
   return (
     <div className="w-full rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 space-y-3">
-      <p className="text-xs font-semibold tracking-widest text-zinc-500">CATÉGORIE SPOTIFY</p>
+      {!artistLocked && (
+        <>
+          <p className="text-xs font-semibold tracking-widest text-zinc-500">CATÉGORIE SPOTIFY</p>
 
-      <div className="flex flex-wrap gap-2">
-        {SCOPES.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => handleScopeChange(id)}
-            aria-pressed={selection.scope === id}
-            disabled={loading}
-            className={`rounded-md px-3 py-2 text-xs font-medium min-h-9 transition-colors ${
-              selection.scope === id
-                ? "bg-green-500 text-black shadow"
-                : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-50"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+          <div className="flex flex-wrap gap-2">
+            {SCOPES.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => handleScopeChange(id)}
+                aria-pressed={selection.scope === id}
+                disabled={loading}
+                className={`rounded-md px-3 py-2 text-xs font-medium min-h-9 transition-colors ${
+                  selection.scope === id
+                    ? "bg-green-500 text-black shadow"
+                    : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {error && (
         <div
@@ -160,109 +159,89 @@ export default function LikedCategoryPicker({
 
       {selection.scope !== "all" && !error && (
         <>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={selection.scope === "artist" ? "Rechercher un artiste…" : "Rechercher un genre…"}
-            disabled={loading}
-            className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 min-h-10"
-          />
-
-          {selection.scope === "artist" &&
-            (filteredArtists.length === 0 ? (
-              <div role="status" className="px-3 py-2 text-xs text-zinc-500">
-                {loading ? "Chargement…" : "Aucun artiste trouvé dans vos titres aimés"}
-              </div>
-            ) : (
-              <div
-                className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 divide-y divide-zinc-800/80"
-                role="listbox"
-                aria-label="Artistes"
-              >
-                {filteredArtists.map((artist) => (
-                  <button
-                    key={artist.id}
-                    type="button"
-                    role="option"
-                    aria-selected={selection.artistId === artist.id}
-                    onClick={() =>
-                      onSelectionChange({ ...selection, artistId: artist.id, enrich: selection.enrich })
-                    }
-                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 min-h-10 transition-colors ${
-                      selection.artistId === artist.id
-                        ? "bg-green-500/15 text-green-300"
-                        : "text-zinc-300 hover:bg-zinc-900"
-                    }`}
-                  >
-                    <span className="truncate">{artist.name}</span>
-                    <span className="text-xs text-zinc-500 shrink-0">{artist.likedCount} aimés</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-
-          {selection.scope === "genre" &&
-            (filteredGenres.length === 0 ? (
-              <div role="status" className="px-3 py-2 text-xs text-zinc-500">
-                {loading ? "Chargement…" : "Aucun genre trouvé dans vos titres aimés"}
-              </div>
-            ) : (
-              <div
-                className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 divide-y divide-zinc-800/80"
-                role="listbox"
-                aria-label="Genres"
-              >
-                {filteredGenres.map((g) => (
-                  <button
-                    key={g.name}
-                    type="button"
-                    role="option"
-                    aria-selected={selection.genre === g.name}
-                    onClick={() =>
-                      onSelectionChange({ ...selection, genre: g.name, enrich: selection.enrich })
-                    }
-                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 min-h-10 transition-colors ${
-                      selection.genre === g.name
-                        ? "bg-green-500/15 text-green-300"
-                        : "text-zinc-300 hover:bg-zinc-900"
-                    }`}
-                  >
-                    <span className="truncate">{formatGenreLabel(g.name)}</span>
-                    <span className="text-xs text-zinc-500 shrink-0">{g.likedCount} aimés</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-
-          {(selectedArtist || selectedGenre) && (
-            <label className="flex items-start gap-2 cursor-pointer select-none">
+          {selection.scope === "artist" ? (
+            <LikedArtistPicker
+              artists={artists}
+              selection={selection}
+              onSelectionChange={onSelectionChange}
+              loading={loading}
+              search={search}
+              onSearchChange={setSearch}
+              enrichWarning={enrichWarning}
+              poolLoading={poolLoading}
+            />
+          ) : (
+            <>
               <input
-                type="checkbox"
-                checked={selection.enrich}
-                onChange={(e) => onSelectionChange({ ...selection, enrich: e.target.checked })}
-                disabled={poolLoading}
-                className="mt-0.5 rounded border-zinc-600"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher un genre…"
+                disabled={loading}
+                className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 min-h-10"
               />
-              <span className="text-xs text-zinc-300">
-                {selection.scope === "artist" && selectedArtist
-                  ? `Enrichir avec d'autres titres de ${selectedArtist.name} (au-delà de vos ${selectedArtist.likedCount} titres aimés)`
-                  : selectedGenre
-                    ? `Enrichir avec d'autres titres du genre ${formatGenreLabel(selectedGenre.name)}`
-                    : "Enrichir avec d'autres titres"}
-              </span>
-            </label>
-          )}
 
-          {selection.enrich && enrichWarning && !poolLoading && (
-            <p role="status" className="text-xs text-amber-400 bg-amber-950/20 border border-amber-900/50 rounded px-3 py-2">
-              {enrichWarning}
-            </p>
+              {filteredGenres.length === 0 ? (
+                <div role="status" className="px-3 py-2 text-xs text-zinc-500">
+                  {loading ? "Chargement…" : "Aucun genre trouvé dans vos titres aimés"}
+                </div>
+              ) : (
+                <div
+                  className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 divide-y divide-zinc-800/80"
+                  role="listbox"
+                  aria-label="Genres"
+                >
+                  {filteredGenres.map((g) => (
+                    <button
+                      key={g.name}
+                      type="button"
+                      role="option"
+                      aria-selected={selection.genre === g.name}
+                      onClick={() =>
+                        onSelectionChange({ ...selection, genre: g.name, enrich: selection.enrich })
+                      }
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 min-h-10 transition-colors ${
+                        selection.genre === g.name
+                          ? "bg-green-500/15 text-green-300"
+                          : "text-zinc-300 hover:bg-zinc-900"
+                      }`}
+                    >
+                      <span className="truncate">{formatGenreLabel(g.name)}</span>
+                      <span className="text-xs text-zinc-500 shrink-0">{g.likedCount} aimés</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedGenre && (
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={selection.enrich}
+                    onChange={(e) => onSelectionChange({ ...selection, enrich: e.target.checked })}
+                    disabled={poolLoading}
+                    className="mt-0.5 rounded border-zinc-600"
+                  />
+                  <span className="text-xs text-zinc-300">
+                    Enrichir avec d&apos;autres titres du genre {formatGenreLabel(selectedGenre.name)}
+                  </span>
+                </label>
+              )}
+
+              {selection.enrich && enrichWarning && !poolLoading && (
+                <p
+                  role="status"
+                  className="text-xs text-amber-400 bg-amber-950/20 border border-amber-900/50 rounded px-3 py-2"
+                >
+                  {enrichWarning}
+                </p>
+              )}
+            </>
           )}
         </>
       )}
 
-      {poolHint && (
+      {poolHint && (selection.scope !== "artist" || selection.artistId) && (
         <p className={`text-xs ${poolSize !== null && poolSize < 5 && selection.scope !== "all" ? "text-amber-400" : "text-zinc-500"}`}>
           {poolHint}
           {poolSize !== null && poolSize < 5 && selection.scope !== "all" && (

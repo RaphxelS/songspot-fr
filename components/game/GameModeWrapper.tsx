@@ -298,13 +298,9 @@ export default function GameModeWrapper({ catalog }: Props) {
         </div>
       )}
 
-      {mode === "liked" && catalogStatus === "pick_category" && (
+      {mode === "liked" && catalogStatus === "pick_category" && likedSelection.scope === "genre" && (
         <div className="w-full max-w-2xl mx-auto rounded-lg border border-zinc-800 bg-zinc-950 p-6 text-center space-y-2">
-          <p className="text-sm font-medium text-zinc-200">
-            {likedSelection.scope === "artist"
-              ? "Choisissez un artiste dans la liste ci-dessus"
-              : "Choisissez un genre dans la liste ci-dessus"}
-          </p>
+          <p className="text-sm font-medium text-zinc-200">Choisissez un genre dans la liste ci-dessus</p>
           <p className="text-xs text-zinc-500">
             Le jeu utilisera uniquement vos titres aimés correspondant à cette catégorie.
           </p>

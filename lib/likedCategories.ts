@@ -12,7 +12,22 @@ export type LikedGenreCategory = {
   likedCount: number;
 };
 
+export type ArtistProfile = {
+  genres: string[];
+  imageUrl?: string;
+};
+
+export type ArtistProfilesMap = Map<string, ArtistProfile>;
+
 export type ArtistGenresMap = Map<string, string[]>;
+
+export function profilesToGenresMap(profiles: ArtistProfilesMap): ArtistGenresMap {
+  const map: ArtistGenresMap = new Map();
+  for (const [id, profile] of profiles) {
+    map.set(id, profile.genres);
+  }
+  return map;
+}
 
 /** Humanize Spotify genre slug for UI, e.g. "k-pop" → "K-Pop", "dance pop" → "Dance Pop". */
 export function formatGenreLabel(genre: string): string {

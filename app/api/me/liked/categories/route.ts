@@ -5,10 +5,11 @@ import { getValidAccessToken } from "@/lib/spotifyAuth";
 import {
   buildArtistCategories,
   buildGenreCategories,
+  profilesToGenresMap,
 } from "@/lib/likedCategories";
 import {
   fetchAllLikedTracksWithMeta,
-  fetchArtistGenresMap,
+  fetchArtistProfilesMap,
 } from "@/lib/likedFetch";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,13 @@ export async function GET() {
   try {
     const { tracks, total } = await fetchAllLikedTracksWithMeta(token);
     const artistIds = tracks.map((t) => t.meta.primaryArtistId).filter((id) => id.length > 0);
-    const artistGenresMap = await fetchArtistGenresMap(token, artistIds);
+    const artistProfiles = await fetchArtistProfilesMap(token, artistIds);
+    const artistGenresMap = profilesToGenresMap(artistProfiles);
 
-    const artists = buildArtistCategories(tracks);
+    const artists = buildArtistCategories(tracks).map((artist) => ({
+      ...artist,
+      imageUrl: artistProfiles.get(artist.id)?.imageUrl,
+    }));
     const genres = buildGenreCategories(tracks, artistGenresMap);
 
     return NextResponse.json(
