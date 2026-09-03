@@ -42,7 +42,24 @@ export const STORAGE_KEYS = {
   playedIds: "songspot-fr:playedIds",
   likedPlayedIds: "songspot-fr:liked:playedIds",
   gameMode: "songspot-fr:mode",
+  likedScope: "songspot-fr:liked:scope",
 } as const;
+
+export type LikedScope = "all" | "artist" | "genre";
+
+export type LikedScopeSelection = {
+  scope: LikedScope;
+  artistId: string | null;
+  genre: string | null;
+  enrich: boolean;
+};
+
+export const DEFAULT_LIKED_SCOPE_SELECTION: LikedScopeSelection = {
+  scope: "all",
+  artistId: null,
+  genre: null,
+  enrich: false,
+};
 
 export type GameMode = "top" | "liked";
 export const GAME_MODES: readonly GameMode[] = ["top", "liked"] as const;
