@@ -76,7 +76,9 @@ export default function GameModeWrapper({ catalog }: Props) {
   );
   const [toast, setToast] = React.useState<string | null>(null);
   const auth = useSpotifyAuth();
-  const liked = useLikedCatalog(mode === "liked" && auth.authenticated);
+  const fetchAllLiked =
+    mode === "liked" && auth.authenticated && likedSelection.scope === "all";
+  const liked = useLikedCatalog(fetchAllLiked);
   const categories = useLikedCategories(mode === "liked" && auth.authenticated);
   const scopedCatalog = useLikedScopedCatalog(
     mode === "liked" && auth.authenticated,
@@ -190,10 +192,11 @@ export default function GameModeWrapper({ catalog }: Props) {
   let catalogStatus: "ready" | "loading" | "error" | "empty" | "pick_category" = "ready";
 
   if (mode === "liked") {
-    if (liked.loading || (likedSelection.scope !== "all" && scopedCatalog.loading)) {
+    const waitingForAll = likedSelection.scope === "all";
+    if ((waitingForAll && liked.loading) || (likedSelection.scope !== "all" && scopedCatalog.loading)) {
       catalogStatus = "loading";
       effectiveCatalog = null;
-    } else if (liked.error) {
+    } else if (waitingForAll && liked.error) {
       catalogStatus = "error";
       effectiveCatalog = null;
     } else if (likedSelection.scope === "all") {
@@ -234,8 +237,15 @@ export default function GameModeWrapper({ catalog }: Props) {
 
   const poolSize =
     likedSelection.scope === "all"
-      ? liked.tracks?.length ?? liked.total
+      ? liked.tracks?.length ?? categories.totalLiked ?? liked.total
       : scopedCatalog.tracks?.length ?? null;
+
+  const displayLikedCount =
+    likedSelection.scope === "all"
+      ? liked.tracks?.length ?? null
+      : categories.totalLiked ?? liked.tracks?.length ?? null;
+
+  const displayTotalLiked = categories.totalLiked ?? liked.total;
 
   const showCategoryPicker = mode === "liked" && auth.authenticated;
 
@@ -247,8 +257,8 @@ export default function GameModeWrapper({ catalog }: Props) {
         isAuthenticated={auth.authenticated}
         isConfigured={auth.configured}
         isAuthLoading={auth.loading}
-        likedCount={liked.tracks?.length ?? null}
-        totalLiked={liked.total}
+        likedCount={displayLikedCount}
+        totalLiked={displayTotalLiked}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
         displayName={auth.user?.display_name ?? null}
@@ -262,6 +272,8 @@ export default function GameModeWrapper({ catalog }: Props) {
           genres={categories.genres}
           totalLiked={categories.totalLiked ?? liked.total}
           loading={categories.loading}
+          error={categories.error}
+          onRetry={() => void categories.refetch()}
           poolSize={poolSize ?? null}
           likedInPool={scopedCatalog.likedCount}
           enrichedInPool={scopedCatalog.enrichedCount}

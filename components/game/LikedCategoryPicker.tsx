@@ -17,6 +17,8 @@ export type LikedCategoryPickerProps = {
   genres: LikedGenreCategory[];
   totalLiked: number | null;
   loading: boolean;
+  error: string | null;
+  onRetry?: () => void;
   poolSize: number | null;
   likedInPool: number | null;
   enrichedInPool: number | null;
@@ -65,6 +67,8 @@ export default function LikedCategoryPicker({
   genres,
   totalLiked,
   loading,
+  error,
+  onRetry,
   poolSize,
   likedInPool,
   enrichedInPool,
@@ -134,7 +138,25 @@ export default function LikedCategoryPicker({
         ))}
       </div>
 
-      {selection.scope !== "all" && (
+      {error && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-900/50 bg-red-950/20 px-3 py-2 text-xs text-red-300 flex items-center justify-between gap-2"
+        >
+          <span>Erreur de chargement des catégories : {error}</span>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="shrink-0 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-200 hover:bg-zinc-800"
+            >
+              Réessayer
+            </button>
+          )}
+        </div>
+      )}
+
+      {selection.scope !== "all" && !error && (
         <>
           <input
             type="search"

@@ -1,4 +1,9 @@
-import { describe, it, expect } from "vitest";
+/**
+ * @vitest-environment node
+ */
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
 import {
   buildArtistCategories,
   buildGenreCategories,
@@ -113,5 +118,15 @@ describe("dedupeTracksById", () => {
     const deduped = dedupeTracksById([t1, t2, t3]);
     expect(deduped).toHaveLength(2);
     expect(deduped[0].title).toBe("Track a");
+  });
+});
+
+describe("buildRecommendationsParams", () => {
+  it("uses comma-separated seed_tracks (max 4 with one genre seed)", async () => {
+    const { buildRecommendationsParams } = await import("@/lib/likedFetch");
+    const params = buildRecommendationsParams("k-pop", ["a", "b", "c", "d", "e"]);
+    expect(params.get("seed_genres")).toBe("k-pop");
+    expect(params.get("seed_tracks")).toBe("a,b,c,d");
+    expect(params.toString()).not.toMatch(/seed_tracks=.*&seed_tracks=/);
   });
 });

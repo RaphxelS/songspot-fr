@@ -29,6 +29,7 @@ describe("LikedCategoryPicker", () => {
         genres={genres}
         totalLiked={4}
         loading={false}
+        error={null}
         poolSize={4}
         likedInPool={null}
         enrichedInPool={null}
@@ -49,6 +50,7 @@ describe("LikedCategoryPicker", () => {
         genres={genres}
         totalLiked={4}
         loading={false}
+        error={null}
         poolSize={3}
         likedInPool={3}
         enrichedInPool={0}
@@ -70,6 +72,7 @@ describe("LikedCategoryPicker", () => {
         genres={genres}
         totalLiked={4}
         loading={false}
+        error={null}
         poolSize={4}
         likedInPool={null}
         enrichedInPool={null}
@@ -88,6 +91,7 @@ describe("LikedCategoryPicker", () => {
         genres={genres}
         totalLiked={4}
         loading={false}
+        error={null}
         poolSize={null}
         likedInPool={null}
         enrichedInPool={null}
@@ -109,6 +113,7 @@ describe("LikedCategoryPicker", () => {
         genres={genres}
         totalLiked={4}
         loading={false}
+        error={null}
         poolSize={3}
         likedInPool={3}
         enrichedInPool={0}
@@ -119,5 +124,28 @@ describe("LikedCategoryPicker", () => {
     expect(onSelectionChange).toHaveBeenCalledWith(
       expect.objectContaining({ enrich: true }),
     );
+  });
+
+  it("shows categories error with retry button", () => {
+    const onRetry = vi.fn();
+    render(
+      <LikedCategoryPicker
+        selection={DEFAULT_LIKED_SCOPE_SELECTION}
+        onSelectionChange={onSelectionChange}
+        artists={[]}
+        genres={[]}
+        totalLiked={null}
+        loading={false}
+        error="Erreur Spotify"
+        onRetry={onRetry}
+        poolSize={null}
+        likedInPool={null}
+        enrichedInPool={null}
+        poolLoading={false}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Erreur Spotify");
+    fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    expect(onRetry).toHaveBeenCalled();
   });
 });

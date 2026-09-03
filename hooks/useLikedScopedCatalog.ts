@@ -99,6 +99,7 @@ export function useLikedScopedCatalog(
       setTracks(null);
       setLikedCount(null);
       setEnrichedCount(null);
+      setError(null);
       return;
     }
     void refetch();

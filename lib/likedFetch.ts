@@ -139,15 +139,7 @@ export async function fetchGenreRecommendations(
   seedTrackIds: string[],
   limit = 50,
 ): Promise<Track[]> {
-  const params = new URLSearchParams({
-    limit: String(limit),
-    market: "FR",
-    seed_genres: genre,
-  });
-  for (const id of seedTrackIds.slice(0, 5)) {
-    params.append("seed_tracks", id);
-  }
-
+  const params = buildRecommendationsParams(genre, seedTrackIds, limit);
   const url = `${SPOTIFY_API}/recommendations?${params.toString()}`;
   const res = await fetchWithSpotifyToken(url, token);
   if (!res.ok) return [];
@@ -160,4 +152,22 @@ export async function fetchGenreRecommendations(
     if (mapped) tracks.push(mapped.track);
   }
   return tracks;
+}
+
+/** Spotify expects comma-separated seed_tracks; max 5 seeds total (genre counts as 1). */
+export function buildRecommendationsParams(
+  genre: string,
+  seedTrackIds: string[],
+  limit = 50,
+): URLSearchParams {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    market: "FR",
+    seed_genres: genre,
+  });
+  const seeds = seedTrackIds.slice(0, 4);
+  if (seeds.length > 0) {
+    params.set("seed_tracks", seeds.join(","));
+  }
+  return params;
 }
