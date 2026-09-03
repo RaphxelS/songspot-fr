@@ -67,7 +67,7 @@ export async function GET(request: Request) {
         const artistName = filtered[0].meta.primaryArtistName;
         const [topTracks, searchTracks] = await Promise.all([
           fetchArtistTopTracks(token, artistId),
-          searchArtistTracks(token, artistName),
+          searchArtistTracks(token, artistName, artistId),
         ]);
         pool = dedupeTracksById([...pool, ...topTracks, ...searchTracks]);
       }

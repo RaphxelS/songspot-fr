@@ -115,6 +115,7 @@ export async function fetchArtistTopTracks(token: string, artistId: string): Pro
 export async function searchArtistTracks(
   token: string,
   artistName: string,
+  artistId?: string,
   limit = 50,
 ): Promise<Track[]> {
   const q = encodeURIComponent(`artist:"${artistName.replace(/"/g, "")}"`);
@@ -128,7 +129,9 @@ export async function searchArtistTracks(
   const tracks: Track[] = [];
   for (const raw of items) {
     const mapped = mapSpotifyTrackWithMeta(raw);
-    if (mapped) tracks.push(mapped.track);
+    if (!mapped) continue;
+    if (artistId && mapped.meta.primaryArtistId !== artistId) continue;
+    tracks.push(mapped.track);
   }
   return tracks;
 }

@@ -115,7 +115,7 @@ describe("GET /api/me/liked/catalog", () => {
     const ids = data.tracks.map((t) => t.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(mockTopTracks).toHaveBeenCalledWith("token", "bp");
-    expect(mockSearchTracks).toHaveBeenCalledWith("token", "BLACKPINK");
+    expect(mockSearchTracks).toHaveBeenCalledWith("token", "BLACKPINK", "bp");
   });
 
   it("filters liked tracks by genre and enriches with recommendations", async () => {

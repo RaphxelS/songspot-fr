@@ -17,6 +17,7 @@ import {
   type LikedScopeSelection,
 } from "@/lib/constants";
 import { formatGenreLabel } from "@/lib/likedCategories";
+import { isValidScopedSelection } from "@/lib/likedScope";
 import type { Track } from "@/lib/catalog";
 
 type Props = {
@@ -52,21 +53,6 @@ function persistMode(mode: GameMode) {
     prefs["mode"] = mode;
     window.localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify(prefs));
   } catch {}
-}
-
-function isValidScopedSelection(
-  selection: LikedScopeSelection,
-  artists: { id: string }[],
-  genres: { name: string }[],
-): boolean {
-  if (selection.scope === "all") return true;
-  if (selection.scope === "artist") {
-    return selection.artistId !== null && artists.some((a) => a.id === selection.artistId);
-  }
-  if (selection.scope === "genre") {
-    return selection.genre !== null && genres.some((g) => g.name === selection.genre);
-  }
-  return false;
 }
 
 export default function GameModeWrapper({ catalog }: Props) {

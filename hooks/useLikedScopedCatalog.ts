@@ -44,6 +44,7 @@ export function useLikedScopedCatalog(
   const [enrichedCount, setEnrichedCount] = React.useState<number | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const requestIdRef = React.useRef(0);
 
   const refetch = React.useCallback(async () => {
     const url = buildCatalogUrl(selection);
@@ -54,10 +55,13 @@ export function useLikedScopedCatalog(
       return;
     }
 
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(url, { cache: "no-store" });
+      if (requestId !== requestIdRef.current) return;
+
       if (res.status === 401) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || "Non authentifié");
@@ -67,25 +71,32 @@ export function useLikedScopedCatalog(
         throw new Error(j.error || `Erreur ${res.status}`);
       }
       const j = (await res.json()) as CatalogResponse;
+      if (requestId !== requestIdRef.current) return;
+
       setTracks(j.tracks ?? []);
       setLikedCount(j.likedCount ?? null);
       setEnrichedCount(j.enrichedCount ?? null);
     } catch (e) {
+      if (requestId !== requestIdRef.current) return;
       const msg = e instanceof Error ? e.message : "Erreur inconnue";
       setError(msg);
       setTracks(null);
       setLikedCount(null);
       setEnrichedCount(null);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [selection]);
 
   const clear = React.useCallback(() => {
+    requestIdRef.current += 1;
     setTracks(null);
     setLikedCount(null);
     setEnrichedCount(null);
     setError(null);
+    setLoading(false);
   }, []);
 
   React.useEffect(() => {
@@ -96,10 +107,12 @@ export function useLikedScopedCatalog(
       (selection.scope === "artist" && selection.artistId) ||
       (selection.scope === "genre" && selection.genre);
     if (!hasSelection) {
+      requestIdRef.current += 1;
       setTracks(null);
       setLikedCount(null);
       setEnrichedCount(null);
       setError(null);
+      setLoading(false);
       return;
     }
     void refetch();
