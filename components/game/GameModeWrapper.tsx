@@ -94,12 +94,23 @@ export default function GameModeWrapper({ catalog }: Props) {
 
   // Validate persisted selection once categories load
   React.useEffect(() => {
-    if (categories.loading || categories.artists.length === 0 && categories.genres.length === 0) return;
-    if (!isValidScopedSelection(likedSelection, categories.artists, categories.genres)) {
-      const next = { ...likedSelection, scope: "all" as const, artistId: null, genre: null, enrich: false };
-      setLikedSelection(next);
-      persistLikedScopeSelection(next);
+    const noCategories =
+      categories.artists.length === 0 && categories.genres.length === 0;
+    if (categories.loading || noCategories) return;
+
+    if (isValidScopedSelection(likedSelection, categories.artists, categories.genres)) {
+      return;
     }
+
+    const next = {
+      ...likedSelection,
+      scope: "all" as const,
+      artistId: null,
+      genre: null,
+      enrich: false,
+    };
+    setLikedSelection(next);
+    persistLikedScopeSelection(next);
   }, [categories.loading, categories.artists, categories.genres, likedSelection]);
 
   React.useEffect(() => {

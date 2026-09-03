@@ -46,8 +46,18 @@ function extractArtistInfo(
   }
 
   const artist = names.length > 0 ? names.join(", ") : "Unknown";
-  const primaryArtistId = ids[0] ?? "";
-  const primaryArtistName = names[0] ?? "Unknown";
+
+  // Primary artist id/name must come from the same Spotify artist object only.
+  const primary = artists[0];
+  const primaryArtistName =
+    primary && typeof primary["name"] === "string" && (primary["name"] as string).length > 0
+      ? (primary["name"] as string)
+      : "Unknown";
+  const primaryArtistId =
+    primary && typeof primary["id"] === "string" && (primary["id"] as string).length > 0
+      ? (primary["id"] as string)
+      : "";
+
   return { artist, primaryArtistId, primaryArtistName, allArtistIds: ids };
 }
 

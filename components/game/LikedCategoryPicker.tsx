@@ -167,18 +167,18 @@ export default function LikedCategoryPicker({
             className="w-full rounded-md bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 min-h-10"
           />
 
-          <div
-            className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 divide-y divide-zinc-800/80"
-            role="listbox"
-            aria-label={selection.scope === "artist" ? "Artistes" : "Genres"}
-          >
-            {selection.scope === "artist" &&
-              (filteredArtists.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-zinc-500">
-                  {loading ? "Chargement…" : "Aucun artiste trouvé dans vos titres aimés"}
-                </p>
-              ) : (
-                filteredArtists.map((artist) => (
+          {selection.scope === "artist" &&
+            (filteredArtists.length === 0 ? (
+              <div role="status" className="px-3 py-2 text-xs text-zinc-500">
+                {loading ? "Chargement…" : "Aucun artiste trouvé dans vos titres aimés"}
+              </div>
+            ) : (
+              <div
+                className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 divide-y divide-zinc-800/80"
+                role="listbox"
+                aria-label="Artistes"
+              >
+                {filteredArtists.map((artist) => (
                   <button
                     key={artist.id}
                     type="button"
@@ -196,16 +196,22 @@ export default function LikedCategoryPicker({
                     <span className="truncate">{artist.name}</span>
                     <span className="text-xs text-zinc-500 shrink-0">{artist.likedCount} aimés</span>
                   </button>
-                ))
-              ))}
+                ))}
+              </div>
+            ))}
 
-            {selection.scope === "genre" &&
-              (filteredGenres.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-zinc-500">
-                  {loading ? "Chargement…" : "Aucun genre trouvé dans vos titres aimés"}
-                </p>
-              ) : (
-                filteredGenres.map((g) => (
+          {selection.scope === "genre" &&
+            (filteredGenres.length === 0 ? (
+              <div role="status" className="px-3 py-2 text-xs text-zinc-500">
+                {loading ? "Chargement…" : "Aucun genre trouvé dans vos titres aimés"}
+              </div>
+            ) : (
+              <div
+                className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 divide-y divide-zinc-800/80"
+                role="listbox"
+                aria-label="Genres"
+              >
+                {filteredGenres.map((g) => (
                   <button
                     key={g.name}
                     type="button"
@@ -223,9 +229,9 @@ export default function LikedCategoryPicker({
                     <span className="truncate">{formatGenreLabel(g.name)}</span>
                     <span className="text-xs text-zinc-500 shrink-0">{g.likedCount} aimés</span>
                   </button>
-                ))
-              ))}
-          </div>
+                ))}
+              </div>
+            ))}
 
           {(selectedArtist || selectedGenre) && (
             <label className="flex items-start gap-2 cursor-pointer select-none">
