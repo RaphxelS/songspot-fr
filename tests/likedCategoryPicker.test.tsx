@@ -102,7 +102,7 @@ describe("LikedCategoryPicker", () => {
         poolLoading={false}
       />,
     );
-    fireEvent.click(screen.getByRole("option", { name: /BLACKPINK/i }));
+    fireEvent.click(screen.getByRole("listitem", { name: /BLACKPINK, 3 titres aimés/i }));
     expect(onSelectionChange).toHaveBeenCalledWith(
       expect.objectContaining({ scope: "artist", artistId: "bp", enrich: false }),
     );
@@ -149,6 +149,31 @@ describe("LikedCategoryPicker", () => {
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Spotify n'a pas pu suggérer");
+  });
+
+  it("hides artist grid after selection and shows change button", () => {
+    render(
+      <LikedCategoryPicker
+        selection={{ scope: "artist", artistId: "bp", genre: null, enrich: false }}
+        onSelectionChange={onSelectionChange}
+        artists={[
+          { id: "bp", name: "BLACKPINK", likedCount: 3, imageUrl: "https://i.scdn.co/image/test.jpg" },
+          { id: "st", name: "Stromae", likedCount: 1 },
+        ]}
+        genres={genres}
+        totalLiked={4}
+        loading={false}
+        error={null}
+        poolSize={3}
+        likedInPool={3}
+        enrichedInPool={0}
+        enrichWarning={null}
+        poolLoading={false}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Changer" })).toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Stromae/i })).not.toBeInTheDocument();
   });
 
   it("shows categories error with retry button", () => {
