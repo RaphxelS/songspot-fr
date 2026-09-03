@@ -51,6 +51,7 @@ export async function GET(request: Request) {
         tracks: shuffled,
         likedCount: shuffled.length,
         enrichedCount: 0,
+        enrichWarning: null,
       });
     }
 
@@ -72,10 +73,18 @@ export async function GET(request: Request) {
         pool = dedupeTracksById([...pool, ...topTracks, ...searchTracks]);
       }
 
+      const enrichedCount = Math.max(0, pool.length - likedCount);
+      let enrichWarning: string | null = null;
+      if (enrich && enrichedCount === 0 && likedCount > 0) {
+        enrichWarning =
+          "Aucun titre supplémentaire trouvé pour cet artiste — seuls vos titres aimés seront utilisés.";
+      }
+
       return NextResponse.json({
         tracks: shuffleTracks(pool),
         likedCount,
-        enrichedCount: Math.max(0, pool.length - likedCount),
+        enrichedCount,
+        enrichWarning,
       });
     }
 
@@ -89,17 +98,37 @@ export async function GET(request: Request) {
       const filtered = filterLikedByGenre(allLiked, genre, artistGenresMap);
       let pool: Track[] = filtered.map((t) => t.track);
       const likedCount = pool.length;
+      let enrichWarning: string | null = null;
 
       if (enrich) {
         const seedTrackIds = filtered.slice(0, 5).map((t) => t.track.id);
-        const recommended = await fetchGenreRecommendations(token, genre, seedTrackIds);
-        pool = dedupeTracksById([...pool, ...recommended]);
+        const recommendations = await fetchGenreRecommendations(token, genre, seedTrackIds);
+        pool = dedupeTracksById([...pool, ...recommendations.tracks]);
+        const enrichedCount = Math.max(0, pool.length - likedCount);
+        if (enrichedCount === 0) {
+          if (!recommendations.ok) {
+            enrichWarning =
+              recommendations.status === 403
+                ? "L'enrichissement par genre n'est pas disponible pour cette application Spotify."
+                : "Spotify n'a pas pu suggérer d'autres titres pour ce genre — seuls vos titres aimés seront utilisés.";
+          } else {
+            enrichWarning =
+              "Aucun titre supplémentaire trouvé pour ce genre — seuls vos titres aimés seront utilisés.";
+          }
+        }
+        return NextResponse.json({
+          tracks: shuffleTracks(pool),
+          likedCount,
+          enrichedCount,
+          enrichWarning,
+        });
       }
 
       return NextResponse.json({
         tracks: shuffleTracks(pool),
         likedCount,
-        enrichedCount: Math.max(0, pool.length - likedCount),
+        enrichedCount: 0,
+        enrichWarning: null,
       });
     }
 

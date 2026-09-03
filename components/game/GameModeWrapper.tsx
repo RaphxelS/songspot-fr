@@ -274,6 +274,7 @@ export default function GameModeWrapper({ catalog }: Props) {
           poolSize={poolSize ?? null}
           likedInPool={scopedCatalog.likedCount}
           enrichedInPool={scopedCatalog.enrichedCount}
+          enrichWarning={scopedCatalog.enrichWarning}
           poolLoading={scopedCatalog.loading}
         />
       )}

@@ -72,10 +72,14 @@ describe("GET /api/me/liked/catalog", () => {
       mkLiked("search1", "bp", "BLACKPINK").track,
       mkLiked("l2", "bp", "BLACKPINK").track,
     ]);
-    mockRecommendations.mockResolvedValue([
-      mkLiked("rec1", "bp", "BLACKPINK").track,
-      mkLiked("rec2", "other", "Other").track,
-    ]);
+    mockRecommendations.mockResolvedValue({
+      tracks: [
+        mkLiked("rec1", "bp", "BLACKPINK").track,
+        mkLiked("rec2", "other", "Other").track,
+      ],
+      ok: true,
+      status: 200,
+    });
   });
 
   afterEach(() => {
@@ -124,9 +128,30 @@ describe("GET /api/me/liked/catalog", () => {
       new Request("http://localhost/api/me/liked/catalog?scope=genre&genre=k-pop&enrich=1"),
     );
     expect(res.status).toBe(200);
-    const data = (await res.json()) as { tracks: Track[]; likedCount: number; enrichedCount: number };
+    const data = (await res.json()) as {
+      tracks: Track[];
+      likedCount: number;
+      enrichedCount: number;
+      enrichWarning: string | null;
+    };
     expect(data.likedCount).toBe(3);
     expect(data.enrichedCount).toBeGreaterThan(0);
+    expect(data.enrichWarning).toBeNull();
     expect(mockRecommendations).toHaveBeenCalled();
+  });
+
+  it("returns enrichWarning when genre recommendations fail", async () => {
+    mockRecommendations.mockResolvedValue({ tracks: [], ok: false, status: 403 });
+    const { GET } = await import("@/app/api/me/liked/catalog/route");
+    const res = await GET(
+      new Request("http://localhost/api/me/liked/catalog?scope=genre&genre=k-pop&enrich=1"),
+    );
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      enrichedCount: number;
+      enrichWarning: string | null;
+    };
+    expect(data.enrichedCount).toBe(0);
+    expect(data.enrichWarning).toContain("n'est pas disponible");
   });
 });

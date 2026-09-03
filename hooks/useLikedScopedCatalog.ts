@@ -8,6 +8,7 @@ export type LikedScopedCatalogState = {
   tracks: Track[] | null;
   likedCount: number | null;
   enrichedCount: number | null;
+  enrichWarning: string | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -18,6 +19,7 @@ type CatalogResponse = {
   tracks: Track[];
   likedCount: number;
   enrichedCount: number;
+  enrichWarning?: string | null;
 };
 
 function buildCatalogUrl(selection: LikedScopeSelection): string | null {
@@ -42,6 +44,7 @@ export function useLikedScopedCatalog(
   const [tracks, setTracks] = React.useState<Track[] | null>(null);
   const [likedCount, setLikedCount] = React.useState<number | null>(null);
   const [enrichedCount, setEnrichedCount] = React.useState<number | null>(null);
+  const [enrichWarning, setEnrichWarning] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const requestIdRef = React.useRef(0);
@@ -52,6 +55,7 @@ export function useLikedScopedCatalog(
       setTracks(null);
       setLikedCount(null);
       setEnrichedCount(null);
+      setEnrichWarning(null);
       return;
     }
 
@@ -76,6 +80,7 @@ export function useLikedScopedCatalog(
       setTracks(j.tracks ?? []);
       setLikedCount(j.likedCount ?? null);
       setEnrichedCount(j.enrichedCount ?? null);
+      setEnrichWarning(j.enrichWarning ?? null);
     } catch (e) {
       if (requestId !== requestIdRef.current) return;
       const msg = e instanceof Error ? e.message : "Erreur inconnue";
@@ -83,6 +88,7 @@ export function useLikedScopedCatalog(
       setTracks(null);
       setLikedCount(null);
       setEnrichedCount(null);
+      setEnrichWarning(null);
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
@@ -96,6 +102,7 @@ export function useLikedScopedCatalog(
     setLikedCount(null);
     setEnrichedCount(null);
     setError(null);
+    setEnrichWarning(null);
     setLoading(false);
   }, []);
 
@@ -111,6 +118,7 @@ export function useLikedScopedCatalog(
       setTracks(null);
       setLikedCount(null);
       setEnrichedCount(null);
+      setEnrichWarning(null);
       setError(null);
       setLoading(false);
       return;
@@ -118,5 +126,5 @@ export function useLikedScopedCatalog(
     void refetch();
   }, [enabled, selection, refetch]);
 
-  return { tracks, likedCount, enrichedCount, loading, error, refetch, clear };
+  return { tracks, likedCount, enrichedCount, enrichWarning, loading, error, refetch, clear };
 }

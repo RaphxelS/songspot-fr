@@ -22,6 +22,7 @@ export type LikedCategoryPickerProps = {
   poolSize: number | null;
   likedInPool: number | null;
   enrichedInPool: number | null;
+  enrichWarning: string | null;
   poolLoading: boolean;
 };
 
@@ -72,6 +73,7 @@ export default function LikedCategoryPicker({
   poolSize,
   likedInPool,
   enrichedInPool,
+  enrichWarning,
   poolLoading,
 }: LikedCategoryPickerProps) {
   const [search, setSearch] = React.useState("");
@@ -250,6 +252,12 @@ export default function LikedCategoryPicker({
                     : "Enrichir avec d'autres titres"}
               </span>
             </label>
+          )}
+
+          {selection.enrich && enrichWarning && !poolLoading && (
+            <p role="status" className="text-xs text-amber-400 bg-amber-950/20 border border-amber-900/50 rounded px-3 py-2">
+              {enrichWarning}
+            </p>
           )}
         </>
       )}

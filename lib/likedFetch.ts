@@ -136,16 +136,24 @@ export async function searchArtistTracks(
   return tracks;
 }
 
+export type GenreRecommendationsResult = {
+  tracks: Track[];
+  ok: boolean;
+  status: number | null;
+};
+
 export async function fetchGenreRecommendations(
   token: string,
   genre: string,
   seedTrackIds: string[],
   limit = 50,
-): Promise<Track[]> {
+): Promise<GenreRecommendationsResult> {
   const params = buildRecommendationsParams(genre, seedTrackIds, limit);
   const url = `${SPOTIFY_API}/recommendations?${params.toString()}`;
   const res = await fetchWithSpotifyToken(url, token);
-  if (!res.ok) return [];
+  if (!res.ok) {
+    return { tracks: [], ok: false, status: res.status };
+  }
 
   const data = (await res.json()) as Record<string, unknown>;
   const items = Array.isArray(data["tracks"]) ? (data["tracks"] as unknown[]) : [];
@@ -154,7 +162,7 @@ export async function fetchGenreRecommendations(
     const mapped = mapSpotifyTrackWithMeta(raw);
     if (mapped) tracks.push(mapped.track);
   }
-  return tracks;
+  return { tracks, ok: true, status: res.status };
 }
 
 /** Spotify expects comma-separated seed_tracks; max 5 seeds total (genre counts as 1). */

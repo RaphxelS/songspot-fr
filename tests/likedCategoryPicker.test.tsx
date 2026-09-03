@@ -33,6 +33,7 @@ describe("LikedCategoryPicker", () => {
         poolSize={4}
         likedInPool={null}
         enrichedInPool={null}
+        enrichWarning={null}
         poolLoading={false}
       />,
     );
@@ -54,6 +55,7 @@ describe("LikedCategoryPicker", () => {
         poolSize={3}
         likedInPool={3}
         enrichedInPool={0}
+        enrichWarning={null}
         poolLoading={false}
       />,
     );
@@ -76,6 +78,7 @@ describe("LikedCategoryPicker", () => {
         poolSize={4}
         likedInPool={null}
         enrichedInPool={null}
+        enrichWarning={null}
         poolLoading={false}
       />,
     );
@@ -95,6 +98,7 @@ describe("LikedCategoryPicker", () => {
         poolSize={null}
         likedInPool={null}
         enrichedInPool={null}
+        enrichWarning={null}
         poolLoading={false}
       />,
     );
@@ -117,6 +121,7 @@ describe("LikedCategoryPicker", () => {
         poolSize={3}
         likedInPool={3}
         enrichedInPool={0}
+        enrichWarning={null}
         poolLoading={false}
       />,
     );
@@ -124,6 +129,26 @@ describe("LikedCategoryPicker", () => {
     expect(onSelectionChange).toHaveBeenCalledWith(
       expect.objectContaining({ enrich: true }),
     );
+  });
+
+  it("shows enrich warning when enrichment adds no tracks", () => {
+    render(
+      <LikedCategoryPicker
+        selection={{ scope: "genre", artistId: null, genre: "k-pop", enrich: true }}
+        onSelectionChange={onSelectionChange}
+        artists={artists}
+        genres={genres}
+        totalLiked={4}
+        loading={false}
+        error={null}
+        poolSize={3}
+        likedInPool={3}
+        enrichedInPool={0}
+        enrichWarning="Spotify n'a pas pu suggérer d'autres titres pour ce genre — seuls vos titres aimés seront utilisés."
+        poolLoading={false}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Spotify n'a pas pu suggérer");
   });
 
   it("shows categories error with retry button", () => {
@@ -141,6 +166,7 @@ describe("LikedCategoryPicker", () => {
         poolSize={null}
         likedInPool={null}
         enrichedInPool={null}
+        enrichWarning={null}
         poolLoading={false}
       />,
     );
