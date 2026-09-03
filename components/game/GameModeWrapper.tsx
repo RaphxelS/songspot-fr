@@ -3,9 +3,21 @@
 import * as React from "react";
 import GameContainer from "@/components/game/GameContainer";
 import GameModeSelector, { type GameMode } from "@/components/game/GameModeSelector";
+import LikedCategoryPicker, {
+  loadLikedScopeSelection,
+  persistLikedScopeSelection,
+} from "@/components/game/LikedCategoryPicker";
 import { useSpotifyAuth } from "@/hooks/useSpotifyAuth";
 import { useLikedCatalog } from "@/hooks/useLikedCatalog";
-import { STORAGE_KEYS } from "@/lib/constants";
+import { useLikedCategories } from "@/hooks/useLikedCategories";
+import { useLikedScopedCatalog } from "@/hooks/useLikedScopedCatalog";
+import {
+  DEFAULT_LIKED_SCOPE_SELECTION,
+  STORAGE_KEYS,
+  type LikedScopeSelection,
+} from "@/lib/constants";
+import { formatGenreLabel } from "@/lib/likedCategories";
+import { isValidScopedSelection } from "@/lib/likedScope";
 import type { Track } from "@/lib/catalog";
 
 type Props = {
@@ -17,7 +29,6 @@ function getInitialMode(): GameMode {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.gameMode);
     if (raw === "liked" || raw === "top") return raw as GameMode;
-    // also check legacy prefs mode
     const prefsRaw = window.localStorage.getItem(STORAGE_KEYS.prefs);
     if (prefsRaw) {
       const parsed = JSON.parse(prefsRaw) as { mode?: string };
@@ -30,7 +41,6 @@ function getInitialMode(): GameMode {
 function persistMode(mode: GameMode) {
   try {
     window.localStorage.setItem(STORAGE_KEYS.gameMode, mode);
-    // also store in prefs for backward compat
     const raw = window.localStorage.getItem(STORAGE_KEYS.prefs);
     let prefs: Record<string, unknown> = {};
     if (raw) {
@@ -46,24 +56,49 @@ function persistMode(mode: GameMode) {
 }
 
 export default function GameModeWrapper({ catalog }: Props) {
-  // Initialise avec une valeur déterministe (identique serveur/client) pour
-  // éviter une erreur d'hydratation : getInitialMode() lit localStorage côté
-  // client mais renvoie "top" côté serveur (window undefined), produisant un
-  // HTML différent → React régénère l'arbre. L'effect ci-dessous corrige le
-  // mode réel après montage (sans mismatch).
   const [mode, setMode] = React.useState<GameMode>("top");
+  const [likedSelection, setLikedSelection] = React.useState<LikedScopeSelection>(
+    DEFAULT_LIKED_SCOPE_SELECTION,
+  );
   const [toast, setToast] = React.useState<string | null>(null);
   const auth = useSpotifyAuth();
-  const liked = useLikedCatalog(mode === "liked" && auth.authenticated);
+  const fetchAllLiked =
+    mode === "liked" && auth.authenticated && likedSelection.scope === "all";
+  const liked = useLikedCatalog(fetchAllLiked);
+  const categories = useLikedCategories(mode === "liked" && auth.authenticated);
+  const scopedCatalog = useLikedScopedCatalog(
+    mode === "liked" && auth.authenticated,
+    likedSelection,
+  );
 
-  // Hydration fix: re-read from storage after mount
   React.useEffect(() => {
     const m = getInitialMode();
     if (m !== mode) setMode(m);
+    setLikedSelection(loadLikedScopeSelection());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle spotify query param toasts
+  // Validate persisted selection once categories load
+  React.useEffect(() => {
+    const noCategories =
+      categories.artists.length === 0 && categories.genres.length === 0;
+    if (categories.loading || noCategories) return;
+
+    if (isValidScopedSelection(likedSelection, categories.artists, categories.genres)) {
+      return;
+    }
+
+    const next = {
+      ...likedSelection,
+      scope: "all" as const,
+      artistId: null,
+      genre: null,
+      enrich: false,
+    };
+    setLikedSelection(next);
+    persistLikedScopeSelection(next);
+  }, [categories.loading, categories.artists, categories.genres, likedSelection]);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
@@ -71,10 +106,6 @@ export default function GameModeWrapper({ catalog }: Props) {
     if (val === "connected") {
       setToast("Connecté à Spotify ! Vous pouvez maintenant choisir Titres aimés.");
       setTimeout(() => setToast(null), 4000);
-      // Auto-switch to liked mode after successful connect for better UX
-      if (!auth.loading && auth.authenticated) {
-        // will be handled by next effect
-      }
     } else if (val === "denied") {
       setToast("Connexion Spotify refusée");
       setTimeout(() => setToast(null), 4000);
@@ -89,6 +120,11 @@ export default function GameModeWrapper({ catalog }: Props) {
       setTimeout(() => setToast(null), 5000);
     }
   }, [auth.authenticated, auth.loading]);
+
+  const handleLikedSelectionChange = React.useCallback((next: LikedScopeSelection) => {
+    setLikedSelection(next);
+    persistLikedScopeSelection(next);
+  }, []);
 
   const handleModeChange = React.useCallback(
     (m: GameMode) => {
@@ -107,7 +143,7 @@ export default function GameModeWrapper({ catalog }: Props) {
       }
       setTimeout(() => setToast(null), 2500);
     },
-    [auth.authenticated, liked.tracks, liked.total]
+    [auth.authenticated, liked.tracks, liked.total],
   );
 
   const handleConnect = React.useCallback(() => {
@@ -117,13 +153,16 @@ export default function GameModeWrapper({ catalog }: Props) {
   const handleDisconnect = React.useCallback(async () => {
     await auth.logout();
     liked.clear();
+    categories.clear();
+    scopedCatalog.clear();
+    setLikedSelection(DEFAULT_LIKED_SCOPE_SELECTION);
+    persistLikedScopeSelection(DEFAULT_LIKED_SCOPE_SELECTION);
     setMode("top");
     persistMode("top");
     setToast("Déconnecté de Spotify");
     setTimeout(() => setToast(null), 2500);
-  }, [auth, liked]);
+  }, [auth, liked, categories, scopedCatalog]);
 
-  // Auto-switch to top if user was in liked but logged out
   React.useEffect(() => {
     if (!auth.loading && !auth.authenticated && mode === "liked") {
       setMode("top");
@@ -131,7 +170,6 @@ export default function GameModeWrapper({ catalog }: Props) {
     }
   }, [auth.loading, auth.authenticated, mode]);
 
-  // Auto-switch to liked after successful connect (better UX)
   const hasAutoSwitched = React.useRef(false);
   React.useEffect(() => {
     if (hasAutoSwitched.current) return;
@@ -147,33 +185,66 @@ export default function GameModeWrapper({ catalog }: Props) {
     }
   }, [auth.loading, auth.authenticated, mode]);
 
-  // Decide effective catalog
   let effectiveCatalog: Track[] | null = catalog;
-  let catalogStatus: "ready" | "loading" | "error" | "empty" = "ready";
+  let catalogStatus: "ready" | "loading" | "error" | "empty" | "pick_category" = "ready";
 
   if (mode === "liked") {
-    if (liked.loading) {
+    const waitingForAll = likedSelection.scope === "all";
+    if ((waitingForAll && liked.loading) || (likedSelection.scope !== "all" && scopedCatalog.loading)) {
       catalogStatus = "loading";
       effectiveCatalog = null;
-    } else if (liked.error) {
+    } else if (waitingForAll && liked.error) {
       catalogStatus = "error";
       effectiveCatalog = null;
-    } else if (liked.tracks) {
-      if (liked.tracks.length === 0) {
-        catalogStatus = "empty";
-        effectiveCatalog = null;
-      } else {
-        effectiveCatalog = liked.tracks;
-        catalogStatus = "ready";
-      }
-    } else {
-      // liked catalog not yet fetched but authenticated -> loading
-      if (auth.authenticated && !auth.loading) {
+    } else if (likedSelection.scope === "all") {
+      if (liked.tracks) {
+        if (liked.tracks.length === 0) {
+          catalogStatus = "empty";
+          effectiveCatalog = null;
+        } else {
+          effectiveCatalog = liked.tracks;
+          catalogStatus = "ready";
+        }
+      } else if (auth.authenticated && !auth.loading) {
         catalogStatus = "loading";
         effectiveCatalog = null;
       }
+    } else if (scopedCatalog.error) {
+      catalogStatus = "error";
+      effectiveCatalog = null;
+    } else if (!likedSelection.artistId && likedSelection.scope === "artist") {
+      catalogStatus = "pick_category";
+      effectiveCatalog = null;
+    } else if (!likedSelection.genre && likedSelection.scope === "genre") {
+      catalogStatus = "pick_category";
+      effectiveCatalog = null;
+    } else if (scopedCatalog.tracks) {
+      if (scopedCatalog.tracks.length === 0) {
+        catalogStatus = "empty";
+        effectiveCatalog = null;
+      } else {
+        effectiveCatalog = scopedCatalog.tracks;
+        catalogStatus = "ready";
+      }
+    } else if (auth.authenticated && !auth.loading) {
+      catalogStatus = "loading";
+      effectiveCatalog = null;
     }
   }
+
+  const poolSize =
+    likedSelection.scope === "all"
+      ? liked.tracks?.length ?? categories.totalLiked ?? liked.total
+      : scopedCatalog.tracks?.length ?? null;
+
+  const displayLikedCount =
+    likedSelection.scope === "all"
+      ? liked.tracks?.length ?? null
+      : categories.totalLiked ?? liked.tracks?.length ?? null;
+
+  const displayTotalLiked = categories.totalLiked ?? liked.total;
+
+  const showCategoryPicker = mode === "liked" && auth.authenticated;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex flex-col gap-6">
@@ -183,12 +254,30 @@ export default function GameModeWrapper({ catalog }: Props) {
         isAuthenticated={auth.authenticated}
         isConfigured={auth.configured}
         isAuthLoading={auth.loading}
-        likedCount={liked.tracks?.length ?? null}
-        totalLiked={liked.total}
+        likedCount={displayLikedCount}
+        totalLiked={displayTotalLiked}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
         displayName={auth.user?.display_name ?? null}
       />
+
+      {showCategoryPicker && (
+        <LikedCategoryPicker
+          selection={likedSelection}
+          onSelectionChange={handleLikedSelectionChange}
+          artists={categories.artists}
+          genres={categories.genres}
+          totalLiked={categories.totalLiked ?? liked.total}
+          loading={categories.loading}
+          error={categories.error}
+          onRetry={() => void categories.refetch()}
+          poolSize={poolSize ?? null}
+          likedInPool={scopedCatalog.likedCount}
+          enrichedInPool={scopedCatalog.enrichedCount}
+          enrichWarning={scopedCatalog.enrichWarning}
+          poolLoading={scopedCatalog.loading}
+        />
+      )}
 
       {toast && (
         <div
@@ -209,13 +298,31 @@ export default function GameModeWrapper({ catalog }: Props) {
         </div>
       )}
 
+      {mode === "liked" && catalogStatus === "pick_category" && (
+        <div className="w-full max-w-2xl mx-auto rounded-lg border border-zinc-800 bg-zinc-950 p-6 text-center space-y-2">
+          <p className="text-sm font-medium text-zinc-200">
+            {likedSelection.scope === "artist"
+              ? "Choisissez un artiste dans la liste ci-dessus"
+              : "Choisissez un genre dans la liste ci-dessus"}
+          </p>
+          <p className="text-xs text-zinc-500">
+            Le jeu utilisera uniquement vos titres aimés correspondant à cette catégorie.
+          </p>
+        </div>
+      )}
+
       {mode === "liked" && catalogStatus === "error" && (
         <div className="w-full max-w-2xl mx-auto rounded-lg border border-red-900/50 bg-red-950/20 p-6 text-center space-y-3">
-          <p className="text-sm text-red-300">Erreur de chargement : {liked.error}</p>
+          <p className="text-sm text-red-300">
+            Erreur de chargement : {liked.error || scopedCatalog.error}
+          </p>
           <div className="flex justify-center gap-2">
             <button
               type="button"
-              onClick={() => void liked.fetchAll()}
+              onClick={() => {
+                if (likedSelection.scope === "all") void liked.fetchAll();
+                else void scopedCatalog.refetch();
+              }}
               className="px-4 py-2 rounded-md bg-zinc-900 border border-zinc-800 text-sm text-zinc-200 hover:bg-zinc-800 min-h-11"
             >
               Réessayer
@@ -233,14 +340,21 @@ export default function GameModeWrapper({ catalog }: Props) {
 
       {mode === "liked" && catalogStatus === "empty" && (
         <div className="w-full max-w-2xl mx-auto rounded-lg border border-zinc-800 bg-zinc-950 p-6 text-center space-y-3">
-          <p className="text-sm font-medium text-zinc-200">Aucun titre aimé trouvé</p>
+          <p className="text-sm font-medium text-zinc-200">Aucun titre trouvé pour cette sélection</p>
           <p className="text-xs text-zinc-500">
-            Aimez des morceaux sur Spotify puis revenez ici. Vos Titres aimés apparaîtront automatiquement.
+            {likedSelection.scope === "all"
+              ? "Aimez des morceaux sur Spotify puis revenez ici."
+              : likedSelection.enrich
+                ? "Essayez sans enrichissement ou choisissez une autre catégorie."
+                : "Activez l'enrichissement pour ajouter d'autres titres, ou choisissez une autre catégorie."}
           </p>
           <div className="flex justify-center gap-2 pt-2">
             <button
               type="button"
-              onClick={() => void liked.fetchAll()}
+              onClick={() => {
+                if (likedSelection.scope === "all") void liked.fetchAll();
+                else void scopedCatalog.refetch();
+              }}
               className="px-4 py-2 rounded-md bg-zinc-900 border border-zinc-800 text-sm text-zinc-200 hover:bg-zinc-800 min-h-11"
             >
               Actualiser
@@ -258,9 +372,14 @@ export default function GameModeWrapper({ catalog }: Props) {
 
       {effectiveCatalog && <GameContainer catalog={effectiveCatalog} />}
 
-      {mode === "liked" && effectiveCatalog && liked.tracks && liked.tracks.length < 5 && (
+      {mode === "liked" && effectiveCatalog && effectiveCatalog.length < 5 && (
         <p className="text-xs text-amber-400 text-center max-w-2xl mx-auto bg-amber-950/20 border border-amber-900/50 rounded px-3 py-2">
-          Vous avez peu de titres aimés ({liked.tracks.length}). Le jeu sera plus répétitif — ajoutez des titres sur Spotify pour varier.
+          {likedSelection.scope === "artist" && likedSelection.artistId
+            ? `Peu de titres dans ce pool (${effectiveCatalog.length}).`
+            : likedSelection.scope === "genre" && likedSelection.genre
+              ? `Peu de titres pour ${formatGenreLabel(likedSelection.genre)} (${effectiveCatalog.length}).`
+              : `Vous avez peu de titres aimés (${effectiveCatalog.length}).`}{" "}
+          Le jeu sera plus répétitif — ajoutez des titres sur Spotify ou activez l'enrichissement.
         </p>
       )}
     </div>
